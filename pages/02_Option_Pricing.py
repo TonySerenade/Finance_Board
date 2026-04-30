@@ -121,7 +121,7 @@ fig.add_trace(go.Scatter(
     x=s_range, 
     y=prices_range, 
     mode='lines', 
-    name='Prix de l'Option', 
+    name="Prix de l'Option", 
     line=dict(color='#00FFCC', width=3)
 ))
 
