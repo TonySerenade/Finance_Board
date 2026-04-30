@@ -4,8 +4,8 @@ import pandas as pd
 import requests
 from datetime import datetime
 
-# --- CONFIGURATION PAGE ---
-st.set_config(page_title="Market Intelligence", layout="wide")
+# --- CONFIGURATION PAGE (Correction ici) ---
+st.set_page_config(page_title="Market Intelligence", layout="wide")
 
 # --- FONCTION DE RECHERCHE (AUTOCOMPLETE) ---
 def get_ticker_suggestions(query):
@@ -26,14 +26,15 @@ def get_ticker_suggestions(query):
 if 'watchlist' not in st.session_state:
     st.session_state.watchlist = ["AAPL", "MC.PA", "NVDA"]
 
-# --- BARRE DE NAVIGATION / RECHERCHE (TOP OF MAIN PAGE) ---
+# --- MAIN INTERFACE ---
 st.title("🗞️ Intelligence & Fundamental Terminal")
 
-# Zone de recherche moderne en haut
+# Zone de gestion de la Watchlist (Page principale pour ergonomie mobile)
+st.markdown("### 📌 Watchlist Management")
 col_search, col_list = st.columns([2, 3])
 
 with col_search:
-    search_input = st.text_input("🔍 Search & Add Company:", placeholder="Ex: LVMH, Nvidia, Bitcoin...")
+    search_input = st.text_input("🔍 Search & Add Company:", placeholder="Ex: LVMH, Nvidia...")
     if search_input:
         suggestions = get_ticker_suggestions(search_input)
         if suggestions:
@@ -45,17 +46,13 @@ with col_search:
                     st.rerun()
 
 with col_list:
-    st.write("**Active Watchlist:**")
-    # Affichage horizontal des tickers avec option de suppression
+    st.write("**Active Watchlist (Click ❌ to remove):**")
     if st.session_state.watchlist:
-        cols = st.columns(len(st.session_state.watchlist))
-        for i, t in enumerate(st.session_state.watchlist):
-            with cols[i]:
-                if st.button(f"{t} ❌", key=f"del_{t}", use_container_width=True):
-                    st.session_state.watchlist.remove(t)
-                    st.rerun()
+        # Affichage en petites "puces" horizontales
+        for t in st.session_state.watchlist:
+            st.button(f"{t} ❌", key=f"del_{t}", on_click=lambda ticker=t: st.session_state.watchlist.remove(ticker))
     else:
-        st.info("Watchlist is empty. Search for a company above.")
+        st.info("Watchlist is empty.")
 
 st.divider()
 
@@ -63,7 +60,7 @@ st.divider()
 if st.session_state.watchlist:
     tabs = st.tabs(["🔥 Latest News", "📅 Earnings Calendar", "💎 Fundamentals"])
 
-    # --- TAB 1 : ACTUALITÉS ---
+    # --- TAB 1 : NEWS ---
     with tabs[0]:
         for symbol in st.session_state.watchlist:
             with st.expander(f"Visualizing News for: {symbol}", expanded=True):
@@ -71,7 +68,7 @@ if st.session_state.watchlist:
                 news_data = stock.news
                 has_content = False
                 if news_data:
-                    for item in news_data[:3]: # Top 3 pour plus de clarté
+                    for item in news_data[:3]:
                         title = item.get('title')
                         if title:
                             has_content = True
@@ -80,9 +77,9 @@ if st.session_state.watchlist:
                             st.markdown(f"**[{title}]({item.get('link', '#')})**")
                             st.caption(f"Source: {item.get('publisher', 'Financial Press')} | {pub_date}")
                 if not has_content:
-                    st.warning(f"🔍 Notice for {symbol}: Our API is unable to fetch news from the source. We're on it! :DDD")
+                    st.warning(f"🔍 Notice for {symbol}: Our API is currently unable to fetch news. We're on it! :DDD")
 
-    # --- TAB 2 : CALENDRIER ---
+    # --- TAB 2 : CALENDAR ---
     with tabs[1]:
         st.subheader("Upcoming Events")
         all_events = []
@@ -99,30 +96,34 @@ if st.session_state.watchlist:
             df_ev = pd.DataFrame(all_events).sort_values(by="Date")
             st.dataframe(df_ev, use_container_width=True, hide_index=True)
         else:
-            st.info("No major events scheduled in the near future.")
+            st.info("No major events scheduled.")
 
-    # --- TAB 3 : FUNDAMENTALS (LE GLOW UP) ---
+    # --- TAB 3 : FUNDAMENTALS (GLOW UP) ---
     with tabs[2]:
-        st.subheader("Valuation Dashboard")
-        
         for symbol in st.session_state.watchlist:
             try:
                 inf = yf.Ticker(symbol).info
-                st.markdown(f"#### 🏢 {inf.get('shortName', symbol)}")
-                
-                # Metrics Cards : Bien plus joli qu'un tableau
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Forward P/E", f"{inf.get('forwardPE', 'N/A')}")
-                m2.metric("PEG Ratio", f"{inf.get('pegRatio', 'N/A')}")
-                m3.metric("Profit Margin", f"{inf.get('profitMargins', 0)*100:.2f}%")
-                m4.metric("Market Cap", f"{inf.get('marketCap', 0)/1e9:.1f}B")
-                
-                # Barre de progression visuelle pour la marge (exemple de design)
-                margin = inf.get('profitMargins', 0)
-                st.progress(max(0, min(float(margin), 1.0)), text=f"Profitability Index ({margin*100:.1f}%)")
-                st.divider()
+                with st.container():
+                    st.markdown(f"### 🏢 {inf.get('shortName', symbol)}")
+                    
+                    # Utilisation de colonnes pour un rendu "Dashboard"
+                    c1, c2, c3, c4 = st.columns(4)
+                    
+                    # Metrics avec labels clairs
+                    c1.metric("Forward P/E", f"{inf.get('forwardPE', 'N/A')}")
+                    c2.metric("PEG Ratio", f"{inf.get('pegRatio', 'N/A')}")
+                    
+                    margin = inf.get('profitMargins', 0)
+                    c3.metric("Profit Margin", f"{margin*100:.2f}%")
+                    
+                    cap = inf.get('marketCap', 0) / 1e9
+                    c4.metric("Market Cap", f"{cap:.1f}B USD")
+                    
+                    # Barre de progression pour la rentabilité
+                    st.progress(max(0.0, min(float(margin), 1.0)), text="Profitability Index")
+                    st.divider()
             except:
-                st.error(f"Could not load data for {symbol}")
+                st.error(f"Could not load fundamentals for {symbol}")
 
 else:
-    st.warning("Search and add a company above to unlock the terminal.")
+    st.warning("👈 Start by adding a company above.")
