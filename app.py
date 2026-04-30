@@ -10,9 +10,11 @@ st.set_page_config(
 # --- SIDEBAR (Optional) ---
 with st.sidebar:
     st.markdown("### Contact Details")
-    st.write("📫 [Your Email]")
-    st.write("🔗 [Your LinkedIn Profile]")
-    st.write("💻 [GitHub Repository]")
+    st.write("📫 anthony.moubarak14@gmail.com ")
+    st.write("🔗 https://www.linkedin.com/in/anthony-moubarak-1771a7251/ ")
+    st.write("💻 https://github.com/TonySerenade/Finance_Board ")
+
+
 
 # --- HERO SECTION ---
 st.title("📈 Quantitative Finance & Risk Analysis")
@@ -24,6 +26,7 @@ It reflects my journey in exploring market mechanics and credit risk through cod
 """)
 
 st.divider()
+
 
 # --- ABOUT ME SECTION ---
 col_about, col_img = st.columns([2, 1])
@@ -41,6 +44,8 @@ with col_about:
     
     Currently, I am focusing on **Quantitative Research** and **Risk Management**, looking for ways to optimize decision-making through automation.
     """)
+
+
 
 with col_img:
     # A nice info box or you can even put a placeholder for a photo
@@ -77,6 +82,8 @@ with col2:
 
 st.divider()
 
+
+
 # --- TECHNICAL TOOLKIT ---
 st.header("🛠 Technical Toolkit")
 c1, c2, c3 = st.columns(3)
@@ -95,4 +102,4 @@ with c3:
 
 # --- FOOTER ---
 st.divider()
-st.caption("© 2026 - Quantitative Portfolio | Built with passion for Financial Markets.")
+st.caption("© 2026 - Finance Board | Built with Love ")
