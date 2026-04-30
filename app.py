@@ -7,7 +7,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- SIDEBAR (Empty as requested) ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.markdown("### Navigation")
     st.write("Use the buttons on the main page to explore the modules.")
@@ -35,7 +35,7 @@ with col1:
     and Income Statements to predict financial distress.
     """)
     if st.button("Launch Credit Risk Tool"):
-        # CORRECTION : Le nom doit correspondre exactement au fichier sur GitHub
+        # The filename must match exactly what is on GitHub
         st.switch_page("pages/01_Credit_risk_:_Z-score.py")
 
 with col2:
@@ -91,6 +91,7 @@ with st_col1:
 with st_col2:
     st.markdown("💻 [GitHub Repository](https://github.com/TonySerenade/Finance_Board)")
 with st_col3:
-    st.markdown("📫 [Email Me](mailto:anthony.moubarak14@gmail.com)")
+    # L'adresse mail est affichée directement ici
+    st.markdown("📫 [anthony.moubarak14@gmail.com](mailto:anthony.moubarak14@gmail.com)")
 
 st.caption("<br><center>© 2026 - Finance Board | Built with Passion</center>", unsafe_allow_html=True)
