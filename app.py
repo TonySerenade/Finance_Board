@@ -26,7 +26,8 @@ st.divider()
 # --- PROJECT SHOWCASE ---
 st.header("🚀 Interactive Modules")
 
-col1, col2, col3 = st.columns(3)
+# Première ligne : Les deux premiers outils
+col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("### 🏦 Corporate Credit Risk")
@@ -46,16 +47,28 @@ with col2:
     if st.button("Launch Pricing Tool", use_container_width=True):
         st.switch_page("pages/02_Option_Pricing.py")
 
+st.write("") # Petit espace entre les lignes
+
+# Deuxième ligne : Le troisième outil et le "Work in Progress"
+col3, col4 = st.columns(2)
+
 with col3:
-    st.markdown("### 🗞️ Market Intelligence")
+    st.markdown("### 🗞️ Market View") 
     st.markdown("""
     Real-time terminal for **fundamental analysis**. Aggregates news, corporate agendas, 
     and key valuation metrics.
     """)
     if st.button("Launch Intel Tool", use_container_width=True):
-        st.switch_page("pages/03_Market_Intelligence.py")
+        st.switch_page("pages/Market view.py")
 
-st.divider()
+with col4:
+    st.markdown("### 🏗️ Work in Progress")
+    st.markdown("""
+    A new quantitative module is currently under development. 
+    Stay tuned for advanced portfolio optimization features.
+    """)
+    # Bouton désactivé pour le projet en cours
+    st.button("Coming Soon...", use_container_width=True, disabled=True)
 
 # --- ABOUT ME SECTION ---
 st.header("🔍 Why This Portfolio?")
