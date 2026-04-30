@@ -3,7 +3,7 @@
 
 This repository serves as an interactive portfolio showcasing quantitative finance tools and credit risk models. The goal is to bridge the gap between academic financial theory and functional, data-driven applications.
 
-**Live Demo:** [Insert your Streamlit Cloud Link Here]
+**Live Demo:** https://financeboard-anthonym.streamlit.app
 
 ---
 
