@@ -7,14 +7,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- SIDEBAR (Optional) ---
+# --- SIDEBAR (Empty as requested) ---
 with st.sidebar:
-    st.markdown("### Contact Details")
-    st.write("📫 anthony.moubarak14@gmail.com ")
-    st.write("🔗 https://www.linkedin.com/in/anthony-moubarak-1771a7251/ ")
-    st.write("💻 https://github.com/TonySerenade/Finance_Board ")
-
-
+    st.markdown("### Navigation")
+    st.write("Use the buttons on the main page to explore the modules.")
 
 # --- HERO SECTION ---
 st.title("📈 Quantitative Finance & Risk Analysis")
@@ -24,36 +20,6 @@ st.markdown("""
 Welcome! This platform is a curated collection of financial models and interactive tools. 
 It reflects my journey in exploring market mechanics and credit risk through code.
 """)
-
-st.divider()
-
-
-# --- ABOUT ME SECTION ---
-col_about, col_img = st.columns([2, 1])
-
-with col_about:
-    st.header("🔍 Why This Portfolio?")
-    st.markdown("""
-    I've always believed that finance is best understood when you can **build and break the models yourself**. 
-    For me, it's not just about reading formulas in a textbook; it's about seeing how they react to real-time market shifts.
-    
-    **What drives me:**
-    *   **The "Why" behind the numbers:** I enjoy deep-diving into research papers (like Altman's or Black-Scholes) and translating them into functional code.
-    *   **Data Integrity:** Building tools that fetch live data proves that a model is only as good as the pipeline feeding it.
-    *   **User Experience:** Finance can be complex. I aim to create interfaces that make quantitative analysis accessible and visually intuitive.
-    
-    Currently, I am focusing on **Quantitative Research** and **Risk Management**, looking for ways to optimize decision-making through automation.
-    """)
-
-
-
-with col_img:
-    # A nice info box or you can even put a placeholder for a photo
-    st.info("""
-    **Core Philosophy:**
-    > "In God we trust, all others must bring data." 
-    > — *W. Edwards Deming*
-    """)
 
 st.divider()
 
@@ -69,7 +35,8 @@ with col1:
     and Income Statements to predict financial distress.
     """)
     if st.button("Launch Credit Risk Tool"):
-        st.switch_page("pages/01_Analyse_Credit.py") # Make sure the filename matches exactly
+        # CORRECTION : Le nom doit correspondre exactement au fichier sur GitHub
+        st.switch_page("pages/01_Credit_risk_:_Z-score.py")
 
 with col2:
     st.markdown("### 🧮 Option Pricing & Greeks")
@@ -78,11 +45,25 @@ with col2:
     It calculates real-time sensitivity metrics (Delta, Gamma, Vega, Theta) with interactive visualizations.
     """)
     if st.button("Launch Option Pricing Tool"):
-        st.switch_page("pages/02_Option_Pricing.py") # Make sure the filename matches exactly
+        st.switch_page("pages/02_Option_Pricing.py")
 
 st.divider()
 
+# --- ABOUT ME SECTION ---
+st.header("🔍 Why This Portfolio?")
+st.markdown("""
+I've always believed that finance is best understood when you can **build and break the models yourself**. 
+For me, it's not just about reading formulas in a textbook; it's about seeing how they react to real-time market shifts.
 
+**What drives me:**
+*   **The "Why" behind the numbers:** I enjoy deep-diving into research papers (like Altman's or Black-Scholes) and translating them into functional code.
+*   **Data Integrity:** Building tools that fetch live data proves that a model is only as good as the pipeline feeding it.
+*   **User Experience:** Finance can be complex. I aim to create interfaces that make quantitative analysis accessible and visually intuitive.
+
+Currently, I am focusing on **Quantitative Research** and **Risk Management**, looking for ways to optimize decision-making through automation.
+""")
+
+st.divider()
 
 # --- TECHNICAL TOOLKIT ---
 st.header("🛠 Technical Toolkit")
@@ -100,6 +81,16 @@ with c3:
     st.write("**Visualization**")
     st.caption("Streamlit Framework, Plotly Interactive Charts, LaTeX.")
 
-# --- FOOTER ---
+# --- CONTACT SECTION (BOTTOM OF MAIN PAGE) ---
 st.divider()
-st.caption("© 2026 - Finance Board | Built with Love ")
+st.subheader("📬 Contact & Networking")
+st_col1, st_col2, st_col3 = st.columns(3)
+
+with st_col1:
+    st.markdown("🔗 [LinkedIn Profile](https://www.linkedin.com/in/anthony-moubarak-1771a7251/)")
+with st_col2:
+    st.markdown("💻 [GitHub Repository](https://github.com/TonySerenade/Finance_Board)")
+with st_col3:
+    st.markdown("📫 [Email Me](mailto:anthony.moubarak14@gmail.com)")
+
+st.caption("<br><center>© 2026 - Finance Board | Built with Passion</center>", unsafe_allow_html=True)
