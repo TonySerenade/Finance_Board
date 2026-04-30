@@ -67,7 +67,7 @@ st.divider()
 
 # --- TECHNICAL TOOLKIT ---
 st.header("🛠 Technical Toolkit")
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4) # On passe à 4 colonnes pour inclure l'IA
 
 with c1:
     st.write("**Finance & Math**")
@@ -80,6 +80,11 @@ with c2:
 with c3:
     st.write("**Visualization**")
     st.caption("Streamlit Framework, Plotly Interactive Charts, LaTeX.")
+
+with c4:
+    st.write("**AI-Assisted Engineering**")
+    st.caption("Leveraging Large Language Models (LLMs) for code optimization, debugging, and rapid prototyping of financial models.")
+
 
 # --- CONTACT SECTION (BOTTOM OF MAIN PAGE) ---
 st.divider()
