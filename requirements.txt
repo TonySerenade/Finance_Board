@@ -5,3 +5,4 @@ requests
 scipy
 plotly
 numpy
+plotly
