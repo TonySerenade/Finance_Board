@@ -1,9 +1,3 @@
-[![Tests Passing](https://github.com/TonySerenade/Finance_Board/actions/workflows/ci.yml/badge.svg)](...)
-[![Code Coverage](https://codecov.io/gh/TonySerenade/Finance_Board/branch/main/graph/badge.svg)](...)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](...)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](...)
-
-
 # Quantitative Finance & Trading Tools
 
 **A production-ready analytics suite designed for corporate treasury, market analysis, and 
@@ -42,3 +36,8 @@ credit risk assessment.**
 | **Production Code** | Streamlit, Plotly | UI/UX for real users |
 | **Cloud** | GitHub, CI/CD ready | Professional deployment mindset |
 
+
+[![Tests Passing](https://github.com/TonySerenade/Finance_Board/actions/workflows/ci.yml/badge.svg)](...)
+[![Code Coverage](https://codecov.io/gh/TonySerenade/Finance_Board/branch/main/graph/badge.svg)](...)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](...)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](...)
