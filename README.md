@@ -34,7 +34,7 @@ credit risk assessment.**
 | **Finance** | Black-Scholes, Z-Score, Greeks | Core quant knowledge |
 | **Data Pipeline** | yFinance, Pandas, NumPy | Data extraction & transformation |
 | **Production Code** | Streamlit, Plotly | UI/UX for real users |
-| **Cloud** | GitHub, CI/CD ready | Professional deployment mindset |
+| **Cloud** | GitHub | Deployment |
 
 
 [![Tests Passing](https://github.com/TonySerenade/Finance_Board/actions/workflows/ci.yml/badge.svg)](...)
