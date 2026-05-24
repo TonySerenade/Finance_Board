@@ -1,6 +1,6 @@
 # Quantitative Finance & Trading Tools
 
-**A production-ready analytics suite designed for corporate treasury, market analysis, and 
+**A production-ready analytic suite designed for corporate treasury, market analysis, and 
 credit risk assessment.**
 
 ---
