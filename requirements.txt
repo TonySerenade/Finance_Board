@@ -5,4 +5,4 @@ requests
 scipy
 plotly
 numpy
-plotly
+openpyxl
