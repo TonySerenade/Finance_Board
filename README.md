@@ -1,12 +1,5 @@
 # 📊 Bond Portfolio Analyzer
 
-! **[[1]](https://img.shields.io/badge/Python-3.10+-blue?logo=python)** 
-! **[[2]](https://img.shields.io/badge/Streamlit-1.35+-red?logo=streamlit)** 
-! **[[3]](https://img.shields.io/badge/Status-🚧%20Under%20Refactoring-orange)** 
-! **[[4]](https://img.shields.io/badge/License-MIT-green)** 
-
----
-
 <div align="center">
 
 # 🚧 SITE CURRENTLY UNDER REFACTORING 🚧
