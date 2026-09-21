@@ -1,43 +1,42 @@
-# Quantitative Finance & Trading Tools
+# 📊 Bond Portfolio Analyzer
 
-**A production-ready analytic suite designed for corporate treasury, market analysis, and 
-credit risk assessment.**
-
----
-
-## What's Inside 
-
-###  **Credit Risk Scoring**
-- **Real-world application**: Assess counterparty/borrower solvency in seconds
-- **Model**: Altman Z-Score (widely used in Trésorerie Corpo & Risques)
-- **Why it matters**: Banks use this to make €M lending decisions
-- **Your win**: You built the automated extraction layer + UI
-
-### **Derivatives Pricing Engine**
-- **Real-world application**: Price options, hedge FX positions, evaluate swaptions
-- **Model**: Black-Scholes-Merton with full Greeks (Delta, Gamma, Vega, Theta)
-- **Why it matters**: Market makers & derivative traders use this daily
-- **Your win**: You implemented sophisticated quantitative finance
-
-### **Market Intelligence Terminal**
-- **Real-world application**: Corporate treasury watchlist, fund manager due diligence
-- **Features**: Real-time fundamentals, news aggregation, corporate calendar
-- **Why it matters**: Saves hours of manual Bloomberg-style research
-- **Your win**: Full-stack (scraping, caching, session management)
+! **[[1]](https://img.shields.io/badge/Python-3.10+-blue?logo=python)** 
+! **[[2]](https://img.shields.io/badge/Streamlit-1.35+-red?logo=streamlit)** 
+! **[[3]](https://img.shields.io/badge/Status-🚧%20Under%20Refactoring-orange)** 
+! **[[4]](https://img.shields.io/badge/License-MIT-green)** 
 
 ---
 
-## Tech Stack (Show relevant skills)
+<div align="center">
 
-| Category | Tools | Why it matters |
-|----------|-------|---|
-| **Finance** | Black-Scholes, Z-Score, Greeks | Core quant knowledge |
-| **Data Pipeline** | yFinance, Pandas, NumPy | Data extraction & transformation |
-| **Production Code** | Streamlit, Plotly | UI/UX for real users |
-| **Cloud** | GitHub | Deployment |
+# 🚧 SITE CURRENTLY UNDER REFACTORING 🚧
 
+**Une refonte complète de l'application est en cours.**
+Merci de votre patience — de grandes améliorations arrivent bientôt !
 
-[![Tests Passing](https://github.com/TonySerenade/Finance_Board/actions/workflows/ci.yml/badge.svg)](...)
-[![Code Coverage](https://codecov.io/gh/TonySerenade/Finance_Board/branch/main/graph/badge.svg)](...)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](...)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](...)
+</div>
+
+---
+
+## ⚠️ Statut du projet
+
+> **Ce projet est actuellement en cours de refonte majeure.**
+> Le code présent dans ce dépôt peut être instable, incomplet
+> ou non fonctionnel pendant cette période de transition.
+
+---
+
+## 🔨 Ce qui est en cours
+
+- [ ] Refonte complète de l'interface utilisateur
+- [ ] Restructuration de l'architecture du projet
+- [ ] Amélioration des performances et des calculs
+- [ ] Nouveau design style Bloomberg Terminal
+- [ ] Ajout de nouvelles fonctionnalités d'analyse
+
+---
+
+## 📅 Disponibilité
+
+La nouvelle version sera disponible prochainement.
+Suivez le dépôt pour être notifié dès la mise en ligne. ⭐
