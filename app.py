@@ -2,7 +2,6 @@
 # BOND ANALYZER
 # ============================================================
 
-import html
 from datetime import date
 
 import pandas as pd
@@ -56,7 +55,7 @@ st.markdown(
             background-color: #111827;
             border: 1px solid #374151;
             border-radius: 18px;
-            padding: 1.1rem;
+            padding: 1rem;
         }
 
         .app-title {
@@ -125,18 +124,6 @@ st.markdown(
         div[data-testid="stSelectbox"] label {
             color: #cbd5e1 !important;
         }
-
-        div[data-testid="stAlert"] {
-            border-radius: 12px;
-        }
-
-        .market-title {
-            color: #94a3b8;
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-bottom: 0.7rem;
-            letter-spacing: 0.04rem;
-        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -144,7 +131,7 @@ st.markdown(
 
 
 # ============================================================
-# 4. SPREADS CONTRE LE BUND
+# 4. CALCUL DES SPREADS
 # ============================================================
 
 def calculate_spreads(rates):
@@ -152,28 +139,28 @@ def calculate_spreads(rates):
     Calcule les spreads européens contre le Bund en points de base.
     """
 
-    bund_value = None
+    bund_rate = None
 
     for rate in rates:
         if rate["label"] == "Bund 10Y":
-            bund_value = rate["value"]
-            break
+            bund_rate = rate["value"]
 
-    calculated_rates = []
+    result = []
 
     for rate in rates:
+
         value = rate["value"]
 
         if (
             rate["region"] == "Europe"
-            and bund_value is not None
+            and bund_rate is not None
             and value is not None
         ):
-            spread = (value - bund_value) * 100
+            spread = (value - bund_rate) * 100
         else:
             spread = None
 
-        calculated_rates.append(
+        result.append(
             {
                 "label": rate["label"],
                 "value": value,
@@ -182,62 +169,50 @@ def calculate_spreads(rates):
             }
         )
 
-    return calculated_rates
+    return result
 
 
 # ============================================================
-# 5. BANDEAU DES TAUX
+# 5. BANDEAU DE MARCHÉ SANS HTML
 # ============================================================
 
 def render_market_banner(rates):
     """
-    Affiche les cartes de taux avec des composants natifs Streamlit.
-    Aucun tableau HTML n'est utilisé ici.
+    Affiche les taux sans HTML dynamique.
+
+    On utilise uniquement des composants Streamlit natifs.
     """
 
-    st.markdown(
-        '<div class="market-title">'
-        "10Y GOVERNMENT BOND RATES & SPREADS"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    st.subheader("10Y Government Bond Rates & Spreads")
 
-    columns = st.columns(
-        len(rates),
-        gap="small",
-    )
+    columns = st.columns(len(rates))
 
     for column, rate in zip(columns, rates):
 
         with column:
 
+            # Chaque taux est placé dans une carte Streamlit native.
             with st.container(border=True):
 
                 st.caption(rate["label"])
 
-                value = rate["value"]
-                spread = rate["spread"]
-
-                if value is None:
-                    st.metric(
-                        label="Rate",
-                        value="N/A",
-                    )
+                if rate["value"] is None:
+                    st.write("Rate: N/A")
                 else:
-                    st.metric(
-                        label="Rate",
-                        value=f"{value:.2f}%",
+                    st.write(
+                        f"Rate: {rate['value']:.2f} %"
                     )
 
                 if rate["label"] == "Bund 10Y":
-                    st.caption("Reference")
+                    st.write("Reference")
 
-                elif spread is None:
-                    st.caption("Spread unavailable")
+                elif rate["spread"] is None:
+                    st.write("Spread: N/A")
 
                 else:
-                    st.caption(
-                        f"Spread vs Bund: {spread:+.1f} bp"
+                    st.write(
+                        f"Spread: "
+                        f"{rate['spread']:+.1f} bp"
                     )
 
 
@@ -253,7 +228,7 @@ def generate_cashflows(
     frequency,
 ):
     """
-    Génère les cash flows de l'obligation.
+    Génère les cash flows.
     """
 
     today = pd.Timestamp.today().normalize()
@@ -279,6 +254,7 @@ def generate_cashflows(
     )
 
     while current_date < maturity_timestamp:
+
         payment_dates.append(current_date)
 
         current_date += pd.DateOffset(
@@ -291,10 +267,10 @@ def generate_cashflows(
 
     for payment_date in payment_dates:
 
-        cashflow_amount = coupon_amount
+        amount = coupon_amount
 
         if payment_date == maturity_timestamp:
-            cashflow_amount += face_value
+            amount += face_value
 
         status = (
             "Past"
@@ -305,7 +281,7 @@ def generate_cashflows(
         rows.append(
             {
                 "Date": payment_date,
-                "Cash Flow": round(cashflow_amount, 2),
+                "Cash Flow": round(amount, 2),
                 "Status": status,
             }
         )
@@ -401,12 +377,12 @@ def compute_bond_metrics(
 
 
 # ============================================================
-# 8. STYLE DU TABLEAU CASH FLOW
+# 8. STYLE DU TABLEAU
 # ============================================================
 
 def style_cashflow_rows(row):
     """
-    Grise les flux passés et garde les flux futurs lisibles.
+    Grise les flux passés.
     """
 
     if row["Status"] == "Past":
@@ -427,7 +403,7 @@ def style_cashflow_rows(row):
 
 def render_metric_box(label, value):
     """
-    Génère une petite carte HTML pour les métriques de risque.
+    Affiche une carte HTML pour les métriques de risque.
     """
 
     return f"""
@@ -472,7 +448,7 @@ with st.container(border=True):
         unsafe_allow_html=True,
     )
 
-    # Ligne 1 : identification
+    # Ligne 1
     row_1_col_1, row_1_col_2, row_1_col_3 = st.columns(3)
 
     with row_1_col_1:
@@ -493,7 +469,7 @@ with st.container(border=True):
             placeholder="Ex: France",
         )
 
-    # Ligne 2 : paramètres financiers
+    # Ligne 2
     row_2_col_1, row_2_col_2, row_2_col_3 = st.columns(3)
 
     with row_2_col_1:
@@ -520,7 +496,7 @@ with st.container(border=True):
             step=0.1,
         )
 
-    # Ligne 3 : calendrier
+    # Ligne 3
     row_3_col_1, row_3_col_2, row_3_col_3 = st.columns(3)
 
     with row_3_col_1:
@@ -546,50 +522,19 @@ with st.container(border=True):
             ),
         )
 
-    # Résumé de l'obligation.
-    safe_bond_name = (
-        html.escape(bond_name)
-        if bond_name
-        else "-"
+    st.write(
+        f"Bond: {bond_name if bond_name else '-'}"
     )
 
-    safe_isin = (
-        html.escape(isin)
-        if isin
-        else "-"
+    st.write(
+        f"ISIN: {isin if isin else '-'} | "
+        f"Issuer: {issuer if issuer else '-'}"
     )
 
-    safe_issuer = (
-        html.escape(issuer)
-        if issuer
-        else "-"
-    )
-
-    st.markdown(
-        f"""
-        <div class="bond-name">
-            {safe_bond_name}
-        </div>
-
-        <div class="bond-meta">
-            ISIN: {safe_isin}
-            |
-            Issuer: {safe_issuer}
-            |
-            Coupon: {coupon:.2f}%
-            |
-            Yield: {ytm:.2f}%
-        </div>
-
-        <div class="bond-meta">
-            Issue Date: {issue_date}
-            |
-            Maturity: {maturity_date}
-            |
-            Face Value: {face_value:,.2f}
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.write(
+        f"Coupon: {coupon:.2f}% | "
+        f"Yield: {ytm:.2f}% | "
+        f"Maturity: {maturity_date}"
     )
 
 
