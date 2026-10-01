@@ -2,11 +2,11 @@
 # BOND ANALYZER
 # ============================================================
 
-import html
 from datetime import date, timedelta
 
 import pandas as pd
 import streamlit as st
+import yfinance as yf
 
 
 # ============================================================
@@ -21,7 +21,7 @@ st.set_page_config(
 
 
 # ============================================================
-# 2. STYLE CSS
+# 2. STYLE GLOBAL
 # ============================================================
 
 st.markdown(
@@ -114,6 +114,49 @@ st.markdown(
         div[data-testid="stAlert"] {
             border-radius: 12px;
         }
+
+        .market-title {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 0.7rem;
+            letter-spacing: 0.04rem;
+        }
+
+        .market-card {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 0.6rem;
+            min-height: 95px;
+        }
+
+        .market-card-label {
+            color: #94a3b8;
+            font-size: 0.72rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .market-card-value {
+            color: #f8fafc;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .market-card-change {
+            color: #94a3b8;
+            font-size: 0.72rem;
+        }
+
+        .market-card-change-up {
+            color: #22c55e;
+            font-size: 0.72rem;
+        }
+
+        .market-card-change-down {
+            color: #ef4444;
+            font-size: 0.72rem;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -121,18 +164,207 @@ st.markdown(
 
 
 # ============================================================
-# 3. CALCUL DES CASH FLOWS
+# 3. DONNÉES DE MARCHÉ
+# ============================================================
+
+@st.cache_data(ttl=900)
+def load_market_rates():
+    """
+    Récupère les données de marché disponibles sur Yahoo Finance.
+
+    Les taux souverains européens ne sont pas toujours disponibles
+    directement sur Yahoo Finance. Pour les marchés européens, les
+    tickers utilisés ici sont donc des proxys ETF.
+
+    US 10Y :
+        rendement Treasury 10 ans via ^TNX.
+
+    OAT / Bund / Bono / OLO / Gilt :
+        proxys ETF, donc leurs valeurs sont des prix et non des
+        rendements obligataires exacts.
+    """
+
+    instruments = {
+        "US 10Y": {
+            "ticker": "^TNX",
+            "kind": "yield",
+            "scale": 0.01,
+        },
+        "OAT 10Y": {
+            "ticker": "EFAD.PA",
+            "kind": "proxy",
+            "scale": 1.0,
+        },
+        "Bund 10Y": {
+            "ticker": "EXX7.DE",
+            "kind": "proxy",
+            "scale": 1.0,
+        },
+        "Bono 10Y": {
+            "ticker": "IBCI.MI",
+            "kind": "proxy",
+            "scale": 1.0,
+        },
+        "OLO 10Y": {
+            "ticker": "EMB.BR",
+            "kind": "proxy",
+            "scale": 1.0,
+        },
+        "Gilt 10Y": {
+            "ticker": "IGLT.L",
+            "kind": "proxy",
+            "scale": 1.0,
+        },
+    }
+
+    market_rates = []
+
+    for label, instrument in instruments.items():
+
+        try:
+            history = yf.Ticker(
+                instrument["ticker"]
+            ).history(
+                period="5d",
+                auto_adjust=False,
+            )
+
+            if history.empty or "Close" not in history.columns:
+                market_rates.append(
+                    {
+                        "label": label,
+                        "value": None,
+                        "change": None,
+                        "kind": instrument["kind"],
+                    }
+                )
+                continue
+
+            close_values = history["Close"].dropna()
+
+            if close_values.empty:
+                market_rates.append(
+                    {
+                        "label": label,
+                        "value": None,
+                        "change": None,
+                        "kind": instrument["kind"],
+                    }
+                )
+                continue
+
+            current_value = (
+                float(close_values.iloc[-1])
+                * instrument["scale"]
+            )
+
+            if len(close_values) >= 2:
+                previous_value = (
+                    float(close_values.iloc[-2])
+                    * instrument["scale"]
+                )
+
+                change = current_value - previous_value
+            else:
+                change = None
+
+            market_rates.append(
+                {
+                    "label": label,
+                    "value": current_value,
+                    "change": change,
+                    "kind": instrument["kind"],
+                }
+            )
+
+        except Exception:
+            market_rates.append(
+                {
+                    "label": label,
+                    "value": None,
+                    "change": None,
+                    "kind": instrument["kind"],
+                }
+            )
+
+    return market_rates
+
+
+# ============================================================
+# 4. BANDEAU DE MARCHÉ
+# ============================================================
+
+def render_market_banner(market_rates):
+    """
+    Affiche le bandeau de marché.
+
+    Le contenu est généré uniquement avec des composants Streamlit.
+    Aucun tableau HTML ni aucune chaîne HTML dynamique n'est utilisé.
+    """
+
+    st.markdown(
+        '<div class="market-title">'
+        "10Y GOVERNMENT BOND RATES / MARKET PROXIES"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    columns = st.columns(6)
+
+    for column, market_rate in zip(columns, market_rates):
+
+        with column:
+
+            # Cette carte est un conteneur Streamlit natif.
+            with st.container(border=True):
+
+                label = market_rate["label"]
+                value = market_rate["value"]
+                change = market_rate["change"]
+                kind = market_rate["kind"]
+
+                st.caption(label)
+
+                if value is None:
+
+                    st.metric(
+                        label="Value",
+                        value="N/A",
+                        delta="Unavailable",
+                    )
+
+                else:
+
+                    if kind == "yield":
+                        value_display = f"{value:.2f}%"
+                    else:
+                        value_display = f"{value:.2f}"
+
+                    if change is None:
+                        change_display = "—"
+                    else:
+                        change_display = f"{change:+.2f}"
+
+                    st.metric(
+                        label="Value",
+                        value=value_display,
+                        delta=change_display,
+                    )
+
+
+# ============================================================
+# 5. CASH FLOWS
 # ============================================================
 
 def generate_cashflows(
-    face_value: float,
-    coupon_rate: float,
-    issue_date: date,
-    maturity_date: date,
-    frequency: int,
-) -> pd.DataFrame:
+    face_value,
+    coupon_rate,
+    issue_date,
+    maturity_date,
+    frequency,
+):
     """
-    Génère les flux de coupons et le remboursement final du nominal.
+    Génère les cash flows de l'obligation.
     """
 
     today = pd.Timestamp.today().normalize()
@@ -140,42 +372,39 @@ def generate_cashflows(
     issue_timestamp = pd.Timestamp(issue_date)
     maturity_timestamp = pd.Timestamp(maturity_date)
 
-    # Si les dates sont incohérentes, on retourne un tableau vide.
     if maturity_timestamp <= issue_timestamp:
         return pd.DataFrame(
             columns=["Date", "Cash Flow", "Status"]
         )
 
-    # Montant d'un coupon.
-    coupon_amount = face_value * coupon_rate / frequency
+    coupon_amount = (
+        face_value * coupon_rate / frequency
+    )
 
-    # Nombre de mois entre deux paiements.
     months_between_payments = 12 // frequency
 
     payment_dates = []
 
-    # Premier coupon après la date d'émission.
     current_date = issue_timestamp + pd.DateOffset(
         months=months_between_payments
     )
 
-    # Ajout des coupons intermédiaires.
     while current_date < maturity_timestamp:
+
         payment_dates.append(current_date)
 
         current_date += pd.DateOffset(
             months=months_between_payments
         )
 
-    # La maturité est toujours ajoutée comme dernière date.
     payment_dates.append(maturity_timestamp)
 
     rows = []
 
     for payment_date in payment_dates:
+
         cashflow_amount = coupon_amount
 
-        # À la maturité, on rembourse aussi le nominal.
         if payment_date == maturity_timestamp:
             cashflow_amount += face_value
 
@@ -197,17 +426,17 @@ def generate_cashflows(
 
 
 # ============================================================
-# 4. CALCUL DES MÉTRIQUES
+# 6. MÉTRIQUES OBLIGATAIRES
 # ============================================================
 
 def compute_bond_metrics(
-    face_value: float,
-    coupon_rate: float,
-    ytm: float,
-    issue_date: date,
-    maturity_date: date,
-    frequency: int,
-) -> dict:
+    face_value,
+    coupon_rate,
+    ytm,
+    issue_date,
+    maturity_date,
+    frequency,
+):
     """
     Calcule :
     - Duration
@@ -225,7 +454,6 @@ def compute_bond_metrics(
         frequency=frequency,
     )
 
-    # Seuls les flux futurs servent au calcul des risques.
     future_cashflows = cashflows[
         cashflows["Date"] >= today
     ].copy()
@@ -238,27 +466,22 @@ def compute_bond_metrics(
             "cashflows": cashflows,
         }
 
-    # Temps restant avant chaque paiement, en années.
     future_cashflows["Time"] = (
         future_cashflows["Date"] - today
     ).dt.days / 365.25
 
-    # Yield par période.
     periodic_yield = ytm / frequency
 
-    # Actualisation des flux.
     future_cashflows["Discount Factor"] = 1 / (
         (1 + periodic_yield)
         ** (future_cashflows["Time"] * frequency)
     )
 
-    # Valeur présente de chaque flux.
     future_cashflows["Present Value"] = (
         future_cashflows["Cash Flow"]
         * future_cashflows["Discount Factor"]
     )
 
-    # Prix théorique.
     bond_price = future_cashflows["Present Value"].sum()
 
     if bond_price <= 0:
@@ -269,17 +492,20 @@ def compute_bond_metrics(
             "cashflows": cashflows,
         }
 
-    # Duration de Macaulay.
     duration = (
         future_cashflows["Time"]
         * future_cashflows["Present Value"]
     ).sum() / bond_price
 
-    # Duration modifiée.
-    modified_duration = duration / (1 + periodic_yield)
+    modified_duration = (
+        duration / (1 + periodic_yield)
+    )
 
-    # Approximation du DV01.
-    dv01 = modified_duration * bond_price * 0.0001
+    dv01 = (
+        modified_duration
+        * bond_price
+        * 0.0001
+    )
 
     return {
         "duration": duration,
@@ -290,12 +516,12 @@ def compute_bond_metrics(
 
 
 # ============================================================
-# 5. STYLE DU TABLEAU
+# 7. STYLE DU TABLEAU
 # ============================================================
 
 def style_cashflow_rows(row):
     """
-    Grise les flux passés et conserve les flux futurs en clair.
+    Applique un style différent aux flux passés et futurs.
     """
 
     if row["Status"] == "Past":
@@ -311,24 +537,24 @@ def style_cashflow_rows(row):
 
 
 # ============================================================
-# 6. AFFICHAGE DES MÉTRIQUES
+# 8. CARTES DE RISQUE
 # ============================================================
 
-def render_metric_box(label: str, value: str) -> str:
+def render_metric_box(label, value):
     """
     Génère une carte HTML pour une métrique.
     """
 
     return f"""
-        <div class="metric-box">
-            <div class="metric-label">{label}</div>
-            <div class="metric-value">{value}</div>
-        </div>
+    <div class="metric-box">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value">{value}</div>
+    </div>
     """
 
 
 # ============================================================
-# 7. TITRE
+# 9. TITRE ET BANDEAU
 # ============================================================
 
 st.markdown(
@@ -343,9 +569,12 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+market_rates = load_market_rates()
+render_market_banner(market_rates)
+
 
 # ============================================================
-# 8. CARTE BOND INPUT
+# 10. CARTE BOND INPUT
 # ============================================================
 
 with st.container(border=True):
@@ -355,10 +584,7 @@ with st.container(border=True):
         unsafe_allow_html=True,
     )
 
-    # --------------------------------------------------------
-    # Ligne 1 : identification
-    # --------------------------------------------------------
-
+    # Ligne 1 : identité
     row_1_col_1, row_1_col_2, row_1_col_3 = st.columns(3)
 
     with row_1_col_1:
@@ -379,10 +605,7 @@ with st.container(border=True):
             placeholder="Ex: France",
         )
 
-    # --------------------------------------------------------
-    # Ligne 2 : paramètres financiers
-    # --------------------------------------------------------
-
+    # Ligne 2 : données financières
     row_2_col_1, row_2_col_2, row_2_col_3 = st.columns(3)
 
     with row_2_col_1:
@@ -409,10 +632,7 @@ with st.container(border=True):
             step=0.1,
         )
 
-    # --------------------------------------------------------
-    # Ligne 3 : dates et fréquence
-    # --------------------------------------------------------
-
+    # Ligne 3 : calendrier
     row_3_col_1, row_3_col_2, row_3_col_3 = st.columns(3)
 
     with row_3_col_1:
@@ -438,38 +658,17 @@ with st.container(border=True):
             ),
         )
 
-    # --------------------------------------------------------
     # Résumé de l'obligation
-    # --------------------------------------------------------
-
-    safe_bond_name = (
-        html.escape(bond_name.strip())
-        if bond_name.strip()
-        else "-"
-    )
-
-    safe_isin = (
-        html.escape(isin.strip())
-        if isin.strip()
-        else "-"
-    )
-
-    safe_issuer = (
-        html.escape(issuer.strip())
-        if issuer.strip()
-        else "-"
-    )
-
     st.markdown(
         f"""
         <div class="bond-name">
-            {safe_bond_name}
+            {bond_name if bond_name else "-"}
         </div>
 
         <div class="bond-meta">
-            ISIN: {safe_isin}
+            ISIN: {isin if isin else "-"}
             |
-            Issuer: {safe_issuer}
+            Issuer: {issuer if issuer else "-"}
             |
             Coupon: {coupon:.2f}%
             |
@@ -489,10 +688,9 @@ with st.container(border=True):
 
 
 # ============================================================
-# 9. VALIDATION DES INPUTS
+# 11. VALIDATION DES INPUTS
 # ============================================================
 
-# Les cartes d'analyse ne s'afficheront que si ces conditions sont vraies.
 valid_dates = maturity_date > issue_date
 valid_face_value = face_value > 0
 valid_coupon = coupon > 0
@@ -507,12 +705,11 @@ inputs_are_valid = (
 
 
 # ============================================================
-# 10. AFFICHAGE CONDITIONNEL
+# 12. CARTES D'ANALYSE CONDITIONNELLES
 # ============================================================
 
 if not inputs_are_valid:
 
-    # On indique à l'utilisateur ce qui manque.
     missing_inputs = []
 
     if not valid_face_value:
@@ -538,10 +735,6 @@ if not inputs_are_valid:
 
 else:
 
-    # ========================================================
-    # 11. CALCUL DES ANALYTICS
-    # ========================================================
-
     analytics = compute_bond_metrics(
         face_value=face_value,
         coupon_rate=coupon / 100,
@@ -553,17 +746,13 @@ else:
 
     cashflows = analytics["cashflows"]
 
-    # ========================================================
-    # 12. CARTES D'ANALYSE
-    # ========================================================
-
     risk_column, cashflow_column = st.columns(
         [1, 2],
         gap="large",
     )
 
     # --------------------------------------------------------
-    # Carte Risk Metrics
+    # Risk Metrics
     # --------------------------------------------------------
 
     with risk_column:
@@ -571,7 +760,9 @@ else:
         with st.container(border=True):
 
             st.markdown(
-                '<div class="section-title">Risk Metrics</div>',
+                '<div class="section-title">'
+                "Risk Metrics"
+                "</div>",
                 unsafe_allow_html=True,
             )
 
@@ -600,7 +791,7 @@ else:
             )
 
     # --------------------------------------------------------
-    # Carte Cash Flow Schedule
+    # Cash Flow Schedule
     # --------------------------------------------------------
 
     with cashflow_column:
@@ -622,19 +813,20 @@ else:
 
             else:
 
-                # Copie utilisée uniquement pour l'affichage.
                 display_cashflows = cashflows.copy()
 
-                # Format lisible des dates.
                 display_cashflows["Date"] = (
-                    pd.to_datetime(display_cashflows["Date"])
-                    .dt.strftime("%Y-%m-%d")
+                    pd.to_datetime(
+                        display_cashflows["Date"]
+                    ).dt.strftime("%Y-%m-%d")
                 )
 
-                # Style du tableau.
                 styled_cashflows = (
                     display_cashflows.style
-                    .apply(style_cashflow_rows, axis=1)
+                    .apply(
+                        style_cashflow_rows,
+                        axis=1,
+                    )
                     .format(
                         {
                             "Cash Flow": "{:,.2f}",
@@ -642,8 +834,6 @@ else:
                     )
                 )
 
-                # Hauteur limitée à environ cinq lignes.
-                # Les autres lignes sont accessibles par défilement.
                 st.dataframe(
                     styled_cashflows,
                     hide_index=True,
