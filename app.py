@@ -1,23 +1,6 @@
 # ============================================================
 # BOND ANALYZER
 # ============================================================
-# Application Streamlit d'analyse individuelle d'une obligation.
-#
-# Fonctionnalités :
-# - Bandeau manuel des taux souverains 10 ans
-# - Spread des souverains européens contre le Bund
-# - Saisie des caractéristiques d'une obligation
-# - Duration
-# - Modified Duration
-# - DV01
-# - Cash flows
-# - Flux passés grisés
-# ============================================================
-
-
-# ============================================================
-# 1. IMPORTS
-# ============================================================
 
 import html
 from datetime import date
@@ -27,58 +10,22 @@ import streamlit as st
 
 
 # ============================================================
-# 2. TAUX DE MARCHÉ À METTRE À JOUR MANUELLEMENT
-# ============================================================
-# Modifie uniquement les valeurs "value".
-#
-# Les taux sont exprimés en pourcentage :
-# 5.22 signifie 5,22 %.
-#
-# Les spreads contre le Bund sont calculés automatiquement
-# pour les obligations européennes.
+# 1. TAUX MANUELS
 # ============================================================
 
 MANUAL_MARKET_RATES = [
-    {
-        "label": "US 10Y",
-        "value": 5.22,
-        "region": "US",
-    },
-    {
-        "label": "OAT 10Y",
-        "value": 4.79,
-        "region": "Europe",
-    },
-    {
-        "label": "Bund 10Y",
-        "value": 3.57,
-        "region": "Bund",
-    },
-    {
-        "label": "Bono 10Y",
-        "value": 4.11,
-        "region": "Europe",
-    },
-    {
-        "label": "OLO 10Y",
-        "value": 4.38,
-        "region": "Europe",
-    },
-    {
-        "label": "Gilt 10Y",
-        "value": 4.50,
-        "region": "Europe",
-    },
-    {
-        "label": "BTP 10Y",
-        "value": 4.59,
-        "region": "Europe",
-    },
+    {"label": "US 10Y", "value": 5.22, "region": "US"},
+    {"label": "OAT 10Y", "value": 4.79, "region": "Europe"},
+    {"label": "Bund 10Y", "value": 3.57, "region": "Bund"},
+    {"label": "Bono 10Y", "value": 4.11, "region": "Europe"},
+    {"label": "OLO 10Y", "value": 4.38, "region": "Europe"},
+    {"label": "Gilt 10Y", "value": 4.50, "region": "Europe"},
+    {"label": "BTP 10Y", "value": 4.59, "region": "Europe"},
 ]
 
 
 # ============================================================
-# 3. CONFIGURATION STREAMLIT
+# 2. CONFIGURATION
 # ============================================================
 
 st.set_page_config(
@@ -89,7 +36,7 @@ st.set_page_config(
 
 
 # ============================================================
-# 4. CSS GLOBAL
+# 3. CSS
 # ============================================================
 
 st.markdown(
@@ -190,50 +137,6 @@ st.markdown(
             margin-bottom: 0.7rem;
             letter-spacing: 0.04rem;
         }
-
-        .market-card {
-            background-color: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 0.6rem;
-            min-height: 110px;
-        }
-
-        .market-card-label {
-            color: #94a3b8;
-            font-size: 0.72rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .market-card-value {
-            color: #f8fafc;
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        .market-card-spread {
-            color: #f59e0b;
-            font-size: 0.78rem;
-            margin-top: 0.35rem;
-        }
-
-        .market-card-reference {
-            color: #94a3b8;
-            font-size: 0.78rem;
-            margin-top: 0.35rem;
-        }
-
-        @media (max-width: 1200px) {
-            .market-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        @media (max-width: 800px) {
-            .market-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -241,70 +144,55 @@ st.markdown(
 
 
 # ============================================================
-# 5. CALCUL DES SPREADS CONTRE LE BUND
+# 4. SPREADS CONTRE LE BUND
 # ============================================================
 
 def calculate_spreads(rates):
     """
-    Calcule les spreads des obligations européennes contre le Bund.
-
-    Formule :
-        Spread = taux du pays - taux du Bund
-
-    Conversion :
-        1 % = 100 points de base
+    Calcule les spreads européens contre le Bund en points de base.
     """
 
-    bund_rate = None
+    bund_value = None
 
-    # Recherche du taux Bund.
     for rate in rates:
         if rate["label"] == "Bund 10Y":
-            bund_rate = rate["value"]
+            bund_value = rate["value"]
             break
 
-    result = []
+    calculated_rates = []
 
     for rate in rates:
+        value = rate["value"]
 
-        current_rate = rate["value"]
-
-        # Le spread ne peut pas être calculé sans taux Bund.
         if (
-            bund_rate is None
-            or current_rate is None
-            or rate["region"] not in ["Europe"]
+            rate["region"] == "Europe"
+            and bund_value is not None
+            and value is not None
         ):
+            spread = (value - bund_value) * 100
+        else:
             spread = None
 
-        else:
-            spread = (
-                current_rate - bund_rate
-            ) * 100
-
-        result.append(
+        calculated_rates.append(
             {
                 "label": rate["label"],
-                "value": current_rate,
+                "value": value,
                 "region": rate["region"],
                 "spread": spread,
             }
         )
 
-    return result
+    return calculated_rates
 
 
 # ============================================================
-# 6. AFFICHAGE DU BANDEAU DE MARCHÉ
+# 5. BANDEAU DES TAUX
 # ============================================================
 
 def render_market_banner(rates):
     """
-    Affiche les taux et spreads dans des cartes Streamlit.
-
-    - US 10Y : taux uniquement
-    - Bund 10Y : taux + référence
-    - Autres pays européens : taux + spread contre Bund
+    Affiche les cartes de taux avec des composants natifs Streamlit.
+    Aucun tableau HTML n'est utilisé ici.
     """
 
     st.markdown(
@@ -325,45 +213,36 @@ def render_market_banner(rates):
 
             with st.container(border=True):
 
-                st.markdown(
-                    f"""
-                    <div class="market-card">
-                        <div class="market-card-label">
-                            {html.escape(rate["label"])}
-                        </div>
+                st.caption(rate["label"])
 
-                        <div class="market-card-value">
-                            {
-                                "N/A"
-                                if rate["value"] is None
-                                else f"{rate["value"]:.2f}%"
-                            }
-                        </div>
+                value = rate["value"]
+                spread = rate["spread"]
 
-                        {
-                            '<div class="market-card-reference">'
-                            'Reference'
-                            '</div>'
-                            if rate["label"] == "Bund 10Y"
-                            else (
-                                '<div class="market-card-spread">'
-                                f"Spread: "
-                                f"{rate['spread']:+.1f} bp"
-                                "</div>"
-                                if rate["spread"] is not None
-                                else '<div class="market-card-reference">'
-                                "Spread unavailable"
-                                "</div>"
-                            )
-                        }
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                if value is None:
+                    st.metric(
+                        label="Rate",
+                        value="N/A",
+                    )
+                else:
+                    st.metric(
+                        label="Rate",
+                        value=f"{value:.2f}%",
+                    )
+
+                if rate["label"] == "Bund 10Y":
+                    st.caption("Reference")
+
+                elif spread is None:
+                    st.caption("Spread unavailable")
+
+                else:
+                    st.caption(
+                        f"Spread vs Bund: {spread:+.1f} bp"
+                    )
 
 
 # ============================================================
-# 7. GÉNÉRATION DES CASH FLOWS
+# 6. CASH FLOWS
 # ============================================================
 
 def generate_cashflows(
@@ -374,7 +253,7 @@ def generate_cashflows(
     frequency,
 ):
     """
-    Génère les coupons et le remboursement du nominal.
+    Génère les cash flows de l'obligation.
     """
 
     today = pd.Timestamp.today().normalize()
@@ -400,7 +279,6 @@ def generate_cashflows(
     )
 
     while current_date < maturity_timestamp:
-
         payment_dates.append(current_date)
 
         current_date += pd.DateOffset(
@@ -436,7 +314,7 @@ def generate_cashflows(
 
 
 # ============================================================
-# 8. CALCUL DES MÉTRIQUES
+# 7. MÉTRIQUES OBLIGATAIRES
 # ============================================================
 
 def compute_bond_metrics(
@@ -523,12 +401,12 @@ def compute_bond_metrics(
 
 
 # ============================================================
-# 9. STYLE DU TABLEAU
+# 8. STYLE DU TABLEAU CASH FLOW
 # ============================================================
 
 def style_cashflow_rows(row):
     """
-    Grise les flux passés et conserve les flux futurs en clair.
+    Grise les flux passés et garde les flux futurs lisibles.
     """
 
     if row["Status"] == "Past":
@@ -544,12 +422,12 @@ def style_cashflow_rows(row):
 
 
 # ============================================================
-# 10. CARTES DE RISQUE
+# 9. CARTE DE MÉTRIQUE
 # ============================================================
 
 def render_metric_box(label, value):
     """
-    Génère une carte HTML pour une métrique.
+    Génère une petite carte HTML pour les métriques de risque.
     """
 
     return f"""
@@ -561,7 +439,7 @@ def render_metric_box(label, value):
 
 
 # ============================================================
-# 11. TITRE ET BANDEAU
+# 10. TITRE ET BANDEAU
 # ============================================================
 
 st.markdown(
@@ -584,7 +462,7 @@ render_market_banner(market_data)
 
 
 # ============================================================
-# 12. CARTE BOND INPUT
+# 11. CARTE BOND INPUT
 # ============================================================
 
 with st.container(border=True):
@@ -668,17 +546,35 @@ with st.container(border=True):
             ),
         )
 
-    # Résumé de l'obligation
+    # Résumé de l'obligation.
+    safe_bond_name = (
+        html.escape(bond_name)
+        if bond_name
+        else "-"
+    )
+
+    safe_isin = (
+        html.escape(isin)
+        if isin
+        else "-"
+    )
+
+    safe_issuer = (
+        html.escape(issuer)
+        if issuer
+        else "-"
+    )
+
     st.markdown(
         f"""
         <div class="bond-name">
-            {html.escape(bond_name) if bond_name else "-"}
+            {safe_bond_name}
         </div>
 
         <div class="bond-meta">
-            ISIN: {html.escape(isin) if isin else "-"}
+            ISIN: {safe_isin}
             |
-            Issuer: {html.escape(issuer) if issuer else "-"}
+            Issuer: {safe_issuer}
             |
             Coupon: {coupon:.2f}%
             |
@@ -698,7 +594,7 @@ with st.container(border=True):
 
 
 # ============================================================
-# 13. VALIDATION DES INPUTS
+# 12. VALIDATION
 # ============================================================
 
 valid_dates = maturity_date > issue_date
@@ -715,7 +611,7 @@ inputs_are_valid = (
 
 
 # ============================================================
-# 14. AFFICHAGE CONDITIONNEL DES CARTES
+# 13. AFFICHAGE CONDITIONNEL
 # ============================================================
 
 if not inputs_are_valid:
