@@ -149,7 +149,7 @@ with st.container(border=True):
         st.metric("APPLIED SHOCK", f"{shock_bp:+} bp")
     st.caption("Negative shock = falling yields; positive shock = rising yields.")
 left, right = st.columns([1.25, 1], gap="medium")
-shock_levels = sorted(set([-200, -100, -50, -25, 0, 25, 50, 100, 200, shock_bp]))
+shock_levels = list(range(-200, 201, 25))  # Stable scenarios regardless of slider position.
 rows = []
 for bp in shock_levels:
     dy = bp / 10000
@@ -173,9 +173,10 @@ with right:
     st.metric(f"SELECTED SCENARIO  /  {shock_bp:+} bp", f"{analytics['shock_pnl'](shock_bp):+,.2f}")
     # Color-code profits and losses, just like a trading risk monitor.
     chart = go.Figure(go.Bar(
-        x=shocks.index.tolist(),
+        x=[str(bp) for bp in shocks.index],
         y=shocks["Exact P&L"].tolist(),
         marker_color=["#00D7A0" if pnl >= 0 else "#FF705D" for pnl in shocks["Exact P&L"]],
+        width=0.72,
         hovertemplate="Yield shock: %{x:+} bp | P&L: %{y:+,.4f}<extra></extra>",
     ))
     chart.update_layout(
@@ -183,7 +184,7 @@ with right:
         paper_bgcolor="#080C10", plot_bgcolor="#080C10",
         font=dict(color="#C8D3DF", family="Consolas, monospace"),
         margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(title="Shock (bp)", gridcolor="#25313B"),
+        xaxis=dict(title="Shock (bp)", type="category", categoryorder="array", categoryarray=[str(bp) for bp in shock_levels], gridcolor="#25313B"),
         yaxis=dict(title="P&L", gridcolor="#25313B"),
         showlegend=False,
     )
