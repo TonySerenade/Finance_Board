@@ -6,6 +6,7 @@ from datetime import date
 
 import pandas as pd
 import streamlit as st
+from core.pricing import Bond, analyze_bond
 
 
 # ============================================================
@@ -184,6 +185,7 @@ def render_market_banner(rates):
     """
 
     st.subheader("10Y Government Bond Rates & Spreads")
+    st.caption("Illustrative manual inputs — NOT live market quotations.")
 
     columns = st.columns(len(rates))
 
@@ -491,7 +493,6 @@ with st.container(border=True):
     with row_2_col_3:
         ytm = st.number_input(
             "Yield to Maturity (%)",
-            min_value=0.0,
             value=0.0,
             step=0.1,
         )
@@ -544,8 +545,8 @@ with st.container(border=True):
 
 valid_dates = maturity_date > issue_date
 valid_face_value = face_value > 0
-valid_coupon = coupon > 0
-valid_ytm = ytm > 0
+valid_coupon = coupon >= 0
+valid_ytm = (1 + (ytm / 100) / frequency) > 0
 
 inputs_are_valid = (
     valid_dates
@@ -585,109 +586,62 @@ if not inputs_are_valid:
     )
 
 else:
-
-    analytics = compute_bond_metrics(
-        face_value=face_value,
-        coupon_rate=coupon / 100,
-        ytm=ytm / 100,
-        issue_date=issue_date,
-        maturity_date=maturity_date,
-        frequency=frequency,
-    )
-
-    cashflows = analytics["cashflows"]
-
-    risk_column, cashflow_column = st.columns(
-        [1, 2],
-        gap="large",
-    )
-
-    # --------------------------------------------------------
-    # Risk Metrics
-    # --------------------------------------------------------
-
-    with risk_column:
-
-        with st.container(border=True):
-
-            st.markdown(
-                '<div class="section-title">'
-                "Risk Metrics"
-                "</div>",
-                unsafe_allow_html=True,
+    settlement = date.today()
+    if settlement >= maturity_date:
+        st.warning("This bond has matured. Choose a future maturity.")
+    elif settlement < issue_date:
+        st.warning("Issue date is in the future. Choose an issued bond.")
+    else:
+        try:
+            bond = Bond(
+                face_value=face_value,
+                coupon_rate=coupon / 100,
+                maturity_date=maturity_date,
+                frequency=frequency,
+                issue_date=issue_date,
             )
+            analytics = analyze_bond(bond, ytm / 100, settlement)
+        except ValueError as exc:
+            st.error(str(exc))
+        else:
+            st.subheader("Bond Valuation & Risk")
+            st.caption("Illustrative fixed-coupon valuation. Unadjusted maturity-anchored coupon dates, ACT/ACT coupon periods; no holiday adjustments or stub coupons.")
+            cols = st.columns(4)
+            for col, label, key, fmt in zip(
+                cols,
+                ["Dirty Price", "Accrued Interest", "Clean Price", "DV01"],
+                ["dirty_price", "accrued_interest", "clean_price", "dv01"],
+                [",.2f", ",.2f", ",.2f", ",.4f"],
+            ):
+                col.metric(label, format(analytics[key], fmt))
 
-            st.markdown(
-                render_metric_box(
-                    "Duration",
-                    f"{analytics['duration']:.2f}",
-                ),
-                unsafe_allow_html=True,
-            )
+            cols = st.columns(3)
+            cols[0].metric("Macaulay Duration", f"{analytics['macaulay_duration']:.3f} years")
+            cols[1].metric("Modified Duration", f"{analytics['modified_duration']:.3f} years")
+            cols[2].metric("Convexity", f"{analytics['convexity']:.3f}")
 
-            st.markdown(
-                render_metric_box(
-                    "Modified Duration",
-                    f"{analytics['modified_duration']:.2f}",
-                ),
-                unsafe_allow_html=True,
-            )
-
-            st.markdown(
-                render_metric_box(
-                    "DV01",
-                    f"{analytics['dv01']:.4f}",
-                ),
-                unsafe_allow_html=True,
-            )
-
-    # --------------------------------------------------------
-    # Cash Flow Schedule
-    # --------------------------------------------------------
-
-    with cashflow_column:
-
-        with st.container(border=True):
-
-            st.markdown(
-                '<div class="section-title">'
-                "Cash Flow Schedule"
-                "</div>",
-                unsafe_allow_html=True,
-            )
-
-            if cashflows.empty:
-
-                st.info(
-                    "No cash flows available for this bond."
+            st.subheader("Parallel Yield Shock Scenarios")
+            shock_bp = st.slider("Custom shock (bp)", -200, 200, 50, 5)
+            shock_levels = sorted(set([-100, -50, -25, 0, 25, 50, 100, shock_bp]))
+            shock_rows = []
+            for bp in shock_levels:
+                exact = analytics["shock_pnl"](bp)
+                dy = bp / 10000
+                approximation = analytics["dirty_price"] * (
+                    -analytics["modified_duration"] * dy
+                    + 0.5 * analytics["convexity"] * dy * dy
                 )
+                shock_rows.append({
+                    "Yield shock (bp)": bp,
+                    "Exact repricing P&L": round(exact, 4),
+                    "Duration-convexity P&L": round(approximation, 4),
+                })
+            shocks = pd.DataFrame(shock_rows).set_index("Yield shock (bp)")
+            st.dataframe(shocks, use_container_width=True)
+            st.bar_chart(shocks[["Exact repricing P&L"]])
+            st.caption("P&L per entered face value; yield-only scenarios, no carry, credit spread, FX or liquidity effects.")
 
-            else:
-
-                display_cashflows = cashflows.copy()
-
-                display_cashflows["Date"] = (
-                    pd.to_datetime(
-                        display_cashflows["Date"]
-                    ).dt.strftime("%Y-%m-%d")
-                )
-
-                styled_cashflows = (
-                    display_cashflows.style
-                    .apply(
-                        style_cashflow_rows,
-                        axis=1,
-                    )
-                    .format(
-                        {
-                            "Cash Flow": "{:,.2f}",
-                        }
-                    )
-                )
-
-                st.dataframe(
-                    styled_cashflows,
-                    hide_index=True,
-                    use_container_width=True,
-                    height=250,
-                )
+            st.subheader("Future Cash Flow Schedule")
+            flows = pd.DataFrame(analytics["cashflows"])
+            flows["date"] = flows["date"].astype(str)
+            st.dataframe(flows.rename(columns={"date": "Payment Date", "amount": "Cash Flow", "periods": "Discount Periods"}), hide_index=True, use_container_width=True)
