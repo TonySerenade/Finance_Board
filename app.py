@@ -63,7 +63,8 @@ def sovereign_rates_board():
     st.divider()
 
 
-sovereign_rates_board()
+# Reserve the market panel's position, but render pricing before network access.
+market_panel = st.container()
 
 with st.sidebar:
     st.header("INSTRUMENT SETUP")
@@ -189,3 +190,7 @@ st.dataframe(flows, hide_index=True, use_container_width=True, height=290,
                             "Discount periods": st.column_config.NumberColumn(format="%.3f")})
 with st.expander("MODEL CONVENTIONS & LIMITATIONS"):
     st.write("Regular fixed coupons anchored at maturity; unadjusted payment dates and ACT/ACT within coupon periods. No irregular stub coupons, business-day adjustments, embedded options or credit-spread curves. Sovereign rates are OECD monthly benchmarks distributed via FRED, not live quotes.")
+
+# Populate the reserved panel last: slow FRED calls never block the risk UI.
+with market_panel:
+    sovereign_rates_board()
