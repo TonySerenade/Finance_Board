@@ -15,11 +15,12 @@ def load_yields():
     return add_bund_spreads(fetch_sovereign_yields())
 
 
-st.title("FI  /  BOND RISK TERMINAL")
+st.caption("● FI ANALYTICS / TERMINAL WORKSPACE")
+st.title("FIXED INCOME  /  RISK TERMINAL")
 st.caption(f"FIXED INCOME  /  SINGLE NAME ANALYTICS   •   AS OF {date.today():%d %b %Y}")
 st.divider()
 
-st.subheader("01  /  SOVEREIGN RATES MONITOR")
+st.subheader("01  /  SOVEREIGN YIELD BOARD")
 st.caption("OECD 10-year benchmark yields via FRED • monthly observations, NOT live trading quotes • cached up to 6h")
 if st.button("Refresh rates"):
     load_yields.clear()
@@ -28,7 +29,8 @@ columns = st.columns(len(rates), gap="small")
 for column, rate in zip(columns, rates):
     value = rate["value"]
     with column:
-        st.metric(rate["label"], f"{value:.2f}%" if value is not None else "N/A")
+        with st.container(border=True):
+            st.metric(rate["label"], f"{value:.2f}%" if value is not None else "N/A")
         if rate["spread_bp"] is not None:
             st.caption(f"{rate['spread_bp']:+.0f} bp vs Bund")
         elif rate["region"] == "Bund":
@@ -62,13 +64,10 @@ with st.sidebar:
     st.caption("03 / SCENARIO SETTINGS")
     shock_bp = st.slider("Parallel yield shock (bp)", -200, 200, 50, 5)
 
-st.subheader("02  /  SECURITY SNAPSHOT")
-a, b, c, d = st.columns(4, gap="small")
-a.metric("SECURITY", bond_name or "—")
-b.metric("ISSUER", issuer or "—")
-c.metric("YTM", f"{ytm:.2f}%")
-d.metric("COUPON", f"{coupon:.2f}%")
-st.caption(f"ISIN: {isin or 'NOT SET'}   |   NOTIONAL: {face_value:,.2f}   |   MATURITY: {maturity_date:%d %b %Y}   |   SETTLEMENT: {date.today():%d %b %Y}")
+st.subheader("02  /  INSTRUMENT HEADER")
+with st.container(border=True):
+    st.markdown(f"**{bond_name or 'UNNAMED SECURITY'}**  |  {issuer or 'UNKNOWN ISSUER'}  |  {isin or 'ISIN NOT SET'}")
+    st.caption(f"COUPON {coupon:.2f}%  /  YTM {ytm:.2f}%  /  FACE {face_value:,.2f}  /  MATURITY {maturity_date:%d %b %Y}")
 st.divider()
 
 settlement = date.today()
@@ -89,23 +88,30 @@ except ValueError as exc:
     st.error(f"Pricing error: {exc}")
     st.stop()
 
-st.subheader("03  /  VALUATION & RISK")
+st.subheader("03  /  PRICING & RISK GRID")
 price_cols = st.columns(4, gap="small")
 for col, label, key, precision in zip(
     price_cols,
-    ["DIRTY PRICE", "CLEAN PRICE", "ACCRUED INTEREST", "DV01"],
+    ["DIRTY PRICE", "CLEAN PRICE", "ACCRUED", "DV01 / BP"],
     ["dirty_price", "clean_price", "accrued_interest", "dv01"],
     [2, 2, 2, 4],
 ):
-    col.metric(label, f"{analytics[key]:,.{precision}f}")
+    with col:
+        with st.container(border=True):
+            st.metric(label, f"{analytics[key]:,.{precision}f}")
 
 risk_cols = st.columns(3, gap="small")
-risk_cols[0].metric("MACAULAY DURATION", f"{analytics['macaulay_duration']:.3f} y")
-risk_cols[1].metric("MODIFIED DURATION", f"{analytics['modified_duration']:.3f} y")
-risk_cols[2].metric("CONVEXITY", f"{analytics['convexity']:.3f}")
+for col, label, value in zip(
+    risk_cols,
+    ["MACAULAY DURATION", "MODIFIED DURATION", "CONVEXITY"],
+    [f"{analytics['macaulay_duration']:.3f} Y", f"{analytics['modified_duration']:.3f} Y", f"{analytics['convexity']:.3f}"],
+):
+    with col:
+        with st.container(border=True):
+            st.metric(label, value)
 st.divider()
 
-st.subheader("04  /  RATE SHOCK MONITOR")
+st.subheader("04  /  YIELD SHOCK MATRIX")
 left, right = st.columns([1.25, 1], gap="medium")
 shock_levels = sorted(set([-200, -100, -50, -25, 0, 25, 50, 100, 200, shock_bp]))
 rows = []
@@ -132,4 +138,4 @@ st.dataframe(flows, hide_index=True, use_container_width=True, height=290,
              column_config={"Cash flow": st.column_config.NumberColumn(format="%.2f"),
                             "Discount periods": st.column_config.NumberColumn(format="%.3f")})
 with st.expander("MODEL CONVENTIONS & LIMITATIONS"):
-    st.write("Regular fixed coupons anchored at maturity; unadjusted payment dates and ACT/ACT within coupon periods. No irregular stub coupons, business-day adjustments, embedded options or credit-spread curves. Sovereign rate tiles are manually entered illustrative values, not live quotes.")
+    st.write("Regular fixed coupons anchored at maturity; unadjusted payment dates and ACT/ACT within coupon periods. No irregular stub coupons, business-day adjustments, embedded options or credit-spread curves. Sovereign rates are OECD monthly benchmarks distributed via FRED, not live quotes.")
