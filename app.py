@@ -6,60 +6,13 @@ from core.pricing import Bond, analyze_bond
 
 st.set_page_config(page_title="FI | Risk Terminal", page_icon="▦", layout="wide", initial_sidebar_state="expanded")
 
-# Monthly 10-year government benchmark yields, OECD via FRED (percent).
-# Not tradable intraday quotes. Missing/stale observations are explicitly flagged.
-from io import StringIO
-import requests
-
-SERIES = [
-    ("UST 10Y", "IRLTLT01USM156N", "US"),
-    ("OAT 10Y", "IRLTLT01FRM156N", "Europe"),
-    ("BUND 10Y", "IRLTLT01DEM156N", "Bund"),
-    ("BONO 10Y", "IRLTLT01ESM156N", "Europe"),
-    ("OLO 10Y", "IRLTLT01BEM156N", "Europe"),
-    ("GILT 10Y", "IRLTLT01GBM156N", "UK"),
-    ("BTP 10Y", "IRLTLT01ITM156N", "Europe"),
-]
+from core.rates import fetch_sovereign_yields, add_bund_spreads
 
 
+# Cache network calls for six hours. Streamlit-specific caching belongs in the UI.
 @st.cache_data(ttl=21600, show_spinner=False)
 def load_yields():
-    """Fetch public FRED graph CSV. Return explicit missing values on failure."""
-    rows = []
-    for label, series_id, region in SERIES:
-        try:
-            response = requests.get(
-                "https://fred.stlouisfed.org/graph/fredgraph.csv",
-                params={"id": series_id, "cosd": "2025-01-01"},
-                timeout=8,
-                headers={"User-Agent": "FinanceBoard/1.0 educational analytics"},
-            )
-            response.raise_for_status()
-            frame = pd.read_csv(StringIO(response.text))
-            if "observation_date" in frame.columns:
-                date_col = "observation_date"
-            elif "DATE" in frame.columns:
-                date_col = "DATE"
-            else:
-                raise ValueError("Missing date column")
-            if series_id not in frame.columns:
-                raise ValueError("Missing rate column")
-            frame[series_id] = pd.to_numeric(frame[series_id], errors="coerce")
-            frame[date_col] = pd.to_datetime(frame[date_col], errors="coerce")
-            frame = frame.dropna(subset=[date_col, series_id]).sort_values(date_col)
-            if frame.empty:
-                raise ValueError("No observations")
-            latest = frame.iloc[-1]
-            obs_date = latest[date_col].date()
-            # Stale observations are not displayed as current market rates.
-            is_stale = (date.today() - obs_date).days > 75
-            rows.append({
-                "label": label, "region": region, "value": None if is_stale else float(latest[series_id]),
-                "date": obs_date, "series_id": series_id, "stale": is_stale,
-            })
-        except (requests.RequestException, ValueError, KeyError, IndexError, pd.errors.ParserError):
-            rows.append({"label": label, "region": region, "value": None, "date": None, "series_id": series_id, "stale": False})
-    return rows
+    return add_bund_spreads(fetch_sovereign_yields())
 
 
 st.title("FI  /  BOND RISK TERMINAL")
@@ -71,15 +24,13 @@ st.caption("OECD 10-year benchmark yields via FRED • monthly observations, NOT
 if st.button("Refresh rates"):
     load_yields.clear()
 rates = load_yields()
-bund_row = next((r for r in rates if r["region"] == "Bund"), None)
-bund = bund_row["value"] if bund_row else None
 columns = st.columns(len(rates), gap="small")
 for column, rate in zip(columns, rates):
     value = rate["value"]
     with column:
         st.metric(rate["label"], f"{value:.2f}%" if value is not None else "N/A")
-        if value is not None and bund is not None and rate["region"] == "Europe":
-            st.caption(f"{(value - bund) * 100:+.0f} bp vs Bund")
+        if rate["spread_bp"] is not None:
+            st.caption(f"{rate['spread_bp']:+.0f} bp vs Bund")
         elif rate["region"] == "Bund":
             st.caption("BENCHMARK")
         else:
