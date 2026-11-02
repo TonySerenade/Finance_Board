@@ -13,7 +13,10 @@ from core.rates import fetch_sovereign_yields, add_bund_spreads
 # Cache network calls for 24 hours. Streamlit-specific caching belongs in the UI.
 @st.cache_data(ttl=86400, show_spinner=False)
 def load_yields():
-    return add_bund_spreads(fetch_sovereign_yields())
+    rates = add_bund_spreads(fetch_sovereign_yields())
+    if not any(row["value"] is not None for row in rates):
+        raise RuntimeError("All FRED rate series unavailable; not caching an empty result.")
+    return rates
 
 
 st.markdown(":orange[● FI ANALYTICS] / :blue[MARKET DATA] / :green[RISK ENGINE]")
@@ -31,8 +34,12 @@ def sovereign_rates_board():
     st.caption("OECD 10-year benchmark yields via FRED • monthly observations, NOT live trading quotes • cached up to 24h")
     if st.button("Refresh rates", key="refresh_market_rates"):
         load_yields.clear()
-    with st.spinner('Loading sovereign yields (up to ~4 seconds)...'):
-        rates = load_yields()
+    with st.spinner("Loading sovereign yields (up to ~4 seconds)..."):
+        try:
+            rates = load_yields()
+        except RuntimeError:
+            rates = st.session_state.get("last_good_rates", [])
+            st.warning("FRED data unavailable. No failed download has been cached. Try Refresh rates later.")
         # Keep the last usable rates if the data provider temporarily fails.
         if any(r["value"] is not None for r in rates):
             st.session_state["last_good_rates"] = rates
@@ -41,6 +48,9 @@ def sovereign_rates_board():
             st.info("FRED unavailable; showing previously loaded rates (check observation dates).")
     if not any(rate['value'] is not None for rate in rates):
         st.warning('Market data unavailable. Bond pricing and risk analytics remain accessible below.')
+    if not rates:
+        st.info("No sovereign observations loaded. Bond analytics below remain available.")
+        return
     columns = st.columns(len(rates), gap="small")
     for column, rate in zip(columns, rates):
         value = rate["value"]
@@ -57,7 +67,7 @@ def sovereign_rates_board():
     st.caption("Source: OECD Main Economic Indicators, distributed by FRED (Federal Reserve Bank of St. Louis). Each tile uses its own latest observation month. Different observation dates may affect cross-country spread comparisons.")
     with st.expander("Source series and observation dates"):
         st.dataframe(pd.DataFrame([
-            {"Country": r["label"], "FRED series": r["series_id"], "Observation": str(r["date"]) if r["date"] else "N/A", "Status": "Stale" if r["stale"] else ("OK" if r["value"] is not None else "Unavailable")}
+            {"Country": r["label"], "FRED series": r["series_id"], "Observation": str(r["date"]) if r["date"] else "N/A", "Status": "Stale" if r["stale"] else ("OK" if r["value"] is not None else "Unavailable"), "Error": r.get("error", "")}
             for r in rates
         ]), hide_index=True, use_container_width=True)
     st.divider()
