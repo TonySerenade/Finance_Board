@@ -8,6 +8,7 @@ These are NOT live executable bond quotes.
 """
 from datetime import date
 from io import StringIO
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 import requests
@@ -33,9 +34,8 @@ def fetch_sovereign_yields(as_of=None, max_age_days=75):
     rather than silently displaying an old number as today's market yield.
     """
     today = as_of or date.today()
-    results = []
-
-    for label, series_id, region in SERIES:
+    def fetch_one(series):
+        label, series_id, region = series
         observation = {
             "label": label, "region": region, "series_id": series_id,
             "value": None, "date": None, "stale": False,
@@ -45,7 +45,7 @@ def fetch_sovereign_yields(as_of=None, max_age_days=75):
             response = requests.get(
                 FRED_CSV_URL,
                 params={"id": series_id, "cosd": "2025-01-01"},
-                timeout=8,
+                timeout=4,
                 headers={"User-Agent": "FinanceBoard/1.0 educational analytics"},
             )
             response.raise_for_status()
@@ -75,9 +75,12 @@ def fetch_sovereign_yields(as_of=None, max_age_days=75):
             # One failed country should not take down the whole dashboard.
             pass
 
-        results.append(observation)
+        return observation
 
-    return results
+    # Concurrent requests avoid seven sequential network waits.
+    # executor.map preserves the order of SERIES for the market tiles.
+    with ThreadPoolExecutor(max_workers=len(SERIES)) as executor:
+        return list(executor.map(fetch_one, SERIES))
 
 
 def add_bund_spreads(rates):
