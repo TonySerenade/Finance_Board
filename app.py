@@ -21,34 +21,49 @@ st.title("FIXED INCOME  /  RISK TERMINAL")
 st.caption(f"FIXED INCOME  /  SINGLE NAME ANALYTICS   •   AS OF {date.today():%d %b %Y}")
 st.divider()
 
-st.markdown("### :orange[01 /] SOVEREIGN YIELD BOARD")
-st.caption("OECD 10-year benchmark yields via FRED • monthly observations, NOT live trading quotes • cached up to 6h")
-if st.button("Refresh rates"):
-    load_yields.clear()
-with st.spinner('Loading sovereign yields (up to ~4 seconds)...'):
-    rates = load_yields()
-if not any(rate['value'] is not None for rate in rates):
-    st.warning('Market data unavailable. Bond pricing and risk analytics remain accessible below.')
-columns = st.columns(len(rates), gap="small")
-for column, rate in zip(columns, rates):
-    value = rate["value"]
-    with column:
-        with st.container(border=True):
-            st.metric(rate["label"], f"{value:.2f}%" if value is not None else "N/A")
-        if rate["spread_bp"] is not None:
-            st.caption(f"{rate['spread_bp']:+.0f} bp vs Bund")
-        elif rate["region"] == "Bund":
-            st.caption("BENCHMARK")
-        else:
-            st.caption("10Y YIELD" if value is not None else "UNAVAILABLE / STALE")
-        st.caption(rate["date"].strftime("%Y-%m") if rate["date"] else "NO DATA")
-st.caption("Source: OECD Main Economic Indicators, distributed by FRED (Federal Reserve Bank of St. Louis). Each tile uses its own latest observation month. Different observation dates may affect cross-country spread comparisons.")
-with st.expander("Source series and observation dates"):
-    st.dataframe(pd.DataFrame([
-        {"Country": r["label"], "FRED series": r["series_id"], "Observation": str(r["date"]) if r["date"] else "N/A", "Status": "Stale" if r["stale"] else ("OK" if r["value"] is not None else "Unavailable")}
-        for r in rates
-    ]), hide_index=True, use_container_width=True)
-st.divider()
+@st.fragment(run_every="6h")
+def sovereign_rates_board():
+    """Refresh this market panel while the browser stays connected.
+
+    Streamlit cache avoids repeated downloads between refreshes.
+    """
+    st.markdown("### :orange[01 /] SOVEREIGN YIELD BOARD")
+    st.caption("OECD 10-year benchmark yields via FRED • monthly observations, NOT live trading quotes • cached up to 6h")
+    if st.button("Refresh rates", key="refresh_market_rates"):
+        load_yields.clear()
+    with st.spinner('Loading sovereign yields (up to ~4 seconds)...'):
+        rates = load_yields()
+        # Keep the last usable rates if the data provider temporarily fails.
+        if any(r["value"] is not None for r in rates):
+            st.session_state["last_good_rates"] = rates
+        elif "last_good_rates" in st.session_state:
+            rates = st.session_state["last_good_rates"]
+            st.info("FRED unavailable; showing previously loaded rates (check observation dates).")
+    if not any(rate['value'] is not None for rate in rates):
+        st.warning('Market data unavailable. Bond pricing and risk analytics remain accessible below.')
+    columns = st.columns(len(rates), gap="small")
+    for column, rate in zip(columns, rates):
+        value = rate["value"]
+        with column:
+            with st.container(border=True):
+                st.metric(rate["label"], f"{value:.2f}%" if value is not None else "N/A")
+            if rate["spread_bp"] is not None:
+                st.caption(f"{rate['spread_bp']:+.0f} bp vs Bund")
+            elif rate["region"] == "Bund":
+                st.caption("BENCHMARK")
+            else:
+                st.caption("10Y YIELD" if value is not None else "UNAVAILABLE / STALE")
+            st.caption(rate["date"].strftime("%Y-%m") if rate["date"] else "NO DATA")
+    st.caption("Source: OECD Main Economic Indicators, distributed by FRED (Federal Reserve Bank of St. Louis). Each tile uses its own latest observation month. Different observation dates may affect cross-country spread comparisons.")
+    with st.expander("Source series and observation dates"):
+        st.dataframe(pd.DataFrame([
+            {"Country": r["label"], "FRED series": r["series_id"], "Observation": str(r["date"]) if r["date"] else "N/A", "Status": "Stale" if r["stale"] else ("OK" if r["value"] is not None else "Unavailable")}
+            for r in rates
+        ]), hide_index=True, use_container_width=True)
+    st.divider()
+
+
+sovereign_rates_board()
 
 with st.sidebar:
     st.header("INSTRUMENT SETUP")
@@ -134,7 +149,7 @@ shocks = pd.DataFrame(rows).set_index("Shock (bp)")
 with left:
     st.caption("EXACT REPRICING VS SECOND-ORDER APPROXIMATION")
     st.dataframe(
-        shocks.style.format("{:+,.4f}").applymap(
+        shocks.style.format("{:+,.4f}").map(
             lambda x: "color: #00D7A0" if x > 0 else ("color: #FF705D" if x < 0 else ""),
             subset=["Exact P&L", "Dur+Conv P&L"],
         ),
