@@ -25,7 +25,10 @@ st.subheader("01  /  SOVEREIGN YIELD BOARD")
 st.caption("OECD 10-year benchmark yields via FRED • monthly observations, NOT live trading quotes • cached up to 6h")
 if st.button("Refresh rates"):
     load_yields.clear()
-rates = load_yields()
+with st.spinner('Loading sovereign yields (up to ~4 seconds)...'):
+    rates = load_yields()
+if not any(rate['value'] is not None for rate in rates):
+    st.warning('Market data unavailable. Bond pricing and risk analytics remain accessible below.')
 columns = st.columns(len(rates), gap="small")
 for column, rate in zip(columns, rates):
     value = rate["value"]
