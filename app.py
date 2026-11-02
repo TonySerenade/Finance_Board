@@ -16,12 +16,12 @@ def load_yields():
     return add_bund_spreads(fetch_sovereign_yields())
 
 
-st.caption("● FI ANALYTICS / TERMINAL WORKSPACE")
+st.markdown(":orange[● FI ANALYTICS] / :blue[MARKET DATA] / :green[RISK ENGINE]")
 st.title("FIXED INCOME  /  RISK TERMINAL")
 st.caption(f"FIXED INCOME  /  SINGLE NAME ANALYTICS   •   AS OF {date.today():%d %b %Y}")
 st.divider()
 
-st.subheader("01  /  SOVEREIGN YIELD BOARD")
+st.markdown("### :orange[01 /] SOVEREIGN YIELD BOARD")
 st.caption("OECD 10-year benchmark yields via FRED • monthly observations, NOT live trading quotes • cached up to 6h")
 if st.button("Refresh rates"):
     load_yields.clear()
@@ -64,11 +64,8 @@ with st.sidebar:
     frequency = st.selectbox("Coupon frequency", [1, 2], index=1, format_func=lambda f: "Annual" if f == 1 else "Semiannual")
     issue_date = st.date_input("Issue date", value=date(2024, 1, 1))
     maturity_date = st.date_input("Maturity date", value=date(2030, 1, 1))
-    st.divider()
-    st.caption("03 / SCENARIO SETTINGS")
-    shock_bp = st.slider("Parallel yield shock (bp)", -200, 200, 50, 5)
 
-st.subheader("02  /  INSTRUMENT HEADER")
+st.markdown("### :orange[02 /] INSTRUMENT HEADER")
 with st.container(border=True):
     st.markdown(f"**{bond_name or 'UNNAMED SECURITY'}**  |  {issuer or 'UNKNOWN ISSUER'}  |  {isin or 'ISIN NOT SET'}")
     st.caption(f"COUPON {coupon:.2f}%  /  YTM {ytm:.2f}%  /  FACE {face_value:,.2f}  /  MATURITY {maturity_date:%d %b %Y}")
@@ -92,7 +89,7 @@ except ValueError as exc:
     st.error(f"Pricing error: {exc}")
     st.stop()
 
-st.subheader("03  /  PRICING & RISK GRID")
+st.markdown("### :orange[03 /] PRICING & RISK GRID")
 price_cols = st.columns(4, gap="small")
 for col, label, key, precision in zip(
     price_cols,
@@ -102,7 +99,8 @@ for col, label, key, precision in zip(
 ):
     with col:
         with st.container(border=True):
-            st.metric(label, f"{analytics[key]:,.{precision}f}")
+            st.caption(":orange[●] " + label)
+            st.metric(label, f"{analytics[key]:,.{precision}f}", label_visibility="collapsed")
 
 risk_cols = st.columns(3, gap="small")
 for col, label, value in zip(
@@ -112,10 +110,20 @@ for col, label, value in zip(
 ):
     with col:
         with st.container(border=True):
-            st.metric(label, value)
+            st.caption(":blue[●] " + label)
+            st.metric(label, value, label_visibility="collapsed")
 st.divider()
 
-st.subheader("04  /  YIELD SHOCK MATRIX")
+st.markdown("### :orange[04 /] RATE SHOCK MONITOR")
+# Keep scenario inputs directly above the stress-test results.
+with st.container(border=True):
+    st.markdown(":orange[SCENARIO CONTROLS]  |  :blue[PARALLEL YIELD SHIFT]")
+    shock_control, shock_readout = st.columns([4, 1], vertical_alignment="center")
+    with shock_control:
+        shock_bp = st.slider("Yield shock (basis points)", -200, 200, 50, 5)
+    with shock_readout:
+        st.metric("APPLIED SHOCK", f"{shock_bp:+} bp")
+    st.caption("Negative shock = falling yields; positive shock = rising yields.")
 left, right = st.columns([1.25, 1], gap="medium")
 shock_levels = sorted(set([-200, -100, -50, -25, 0, 25, 50, 100, 200, shock_bp]))
 rows = []
@@ -150,7 +158,7 @@ with right:
 st.caption("All P&L and DV01 figures are in the entered face-value currency. Parallel YTM shifts only; no spread, FX, liquidity or carry effects.")
 st.divider()
 
-st.subheader("05  /  CASH FLOW LADDER")
+st.markdown("### :orange[05 /] CASH FLOW LADDER")
 flows = pd.DataFrame(analytics["cashflows"])
 flows["date"] = flows["date"].astype(str)
 flows = flows.rename(columns={"date": "Payment date", "amount": "Cash flow", "periods": "Discount periods"})
