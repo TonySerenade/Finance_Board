@@ -10,8 +10,8 @@ st.set_page_config(page_title="FI | Risk Terminal", page_icon="▦", layout="wid
 from core.rates import fetch_sovereign_yields, add_bund_spreads
 
 
-# Cache network calls for six hours. Streamlit-specific caching belongs in the UI.
-@st.cache_data(ttl=21600, show_spinner=False)
+# Cache network calls for 24 hours. Streamlit-specific caching belongs in the UI.
+@st.cache_data(ttl=86400, show_spinner=False)
 def load_yields():
     return add_bund_spreads(fetch_sovereign_yields())
 
@@ -21,14 +21,14 @@ st.title("FIXED INCOME  /  RISK TERMINAL")
 st.caption(f"FIXED INCOME  /  SINGLE NAME ANALYTICS   •   AS OF {date.today():%d %b %Y}")
 st.divider()
 
-@st.fragment(run_every="6h")
+@st.fragment(run_every="24h")
 def sovereign_rates_board():
     """Refresh this market panel while the browser stays connected.
 
     Streamlit cache avoids repeated downloads between refreshes.
     """
     st.markdown("### :orange[01 /] SOVEREIGN YIELD BOARD")
-    st.caption("OECD 10-year benchmark yields via FRED • monthly observations, NOT live trading quotes • cached up to 6h")
+    st.caption("OECD 10-year benchmark yields via FRED • monthly observations, NOT live trading quotes • cached up to 24h")
     if st.button("Refresh rates", key="refresh_market_rates"):
         load_yields.clear()
     with st.spinner('Loading sovereign yields (up to ~4 seconds)...'):
