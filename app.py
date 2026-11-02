@@ -99,8 +99,7 @@ for col, label, key, precision in zip(
 ):
     with col:
         with st.container(border=True):
-            st.caption(":orange[●] " + label)
-            st.metric(label, f"{analytics[key]:,.{precision}f}", label_visibility="collapsed")
+            st.metric(label, f"{analytics[key]:,.{precision}f}")
 
 risk_cols = st.columns(3, gap="small")
 for col, label, value in zip(
@@ -110,8 +109,7 @@ for col, label, value in zip(
 ):
     with col:
         with st.container(border=True):
-            st.caption(":blue[●] " + label)
-            st.metric(label, value, label_visibility="collapsed")
+            st.metric(label, value)
 st.divider()
 
 st.markdown("### :orange[04 /] RATE SHOCK MONITOR")
@@ -135,7 +133,13 @@ for bp in shock_levels:
 shocks = pd.DataFrame(rows).set_index("Shock (bp)")
 with left:
     st.caption("EXACT REPRICING VS SECOND-ORDER APPROXIMATION")
-    st.dataframe(shocks.style.format("{:+,.4f}"), use_container_width=True, height=410)
+    st.dataframe(
+        shocks.style.format("{:+,.4f}").applymap(
+            lambda x: "color: #00D7A0" if x > 0 else ("color: #FF705D" if x < 0 else ""),
+            subset=["Exact P&L", "Dur+Conv P&L"],
+        ),
+        use_container_width=True, height=410,
+    )
 with right:
     st.metric(f"SELECTED SCENARIO  /  {shock_bp:+} bp", f"{analytics['shock_pnl'](shock_bp):+,.2f}")
     # Color-code profits and losses, just like a trading risk monitor.
