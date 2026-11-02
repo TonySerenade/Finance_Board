@@ -57,6 +57,8 @@ def sovereign_rates_board():
         with column:
             with st.container(border=True):
                 st.metric(rate["label"], f"{value:.2f}%" if value is not None else "N/A")
+            if rate["stale"] and value is not None:
+                st.caption(":orange[HISTORICAL / STALE]")
             if rate["spread_bp"] is not None:
                 st.caption(f"{rate['spread_bp']:+.0f} bp vs Bund")
             elif rate["region"] == "Bund":
@@ -64,7 +66,7 @@ def sovereign_rates_board():
             else:
                 st.caption("10Y YIELD" if value is not None else "UNAVAILABLE / STALE")
             st.caption(rate["date"].strftime("%Y-%m") if rate["date"] else "NO DATA")
-    st.caption("Source: OECD Main Economic Indicators, distributed by FRED (Federal Reserve Bank of St. Louis). Each tile uses its own latest observation month. Different observation dates may affect cross-country spread comparisons.")
+    st.caption("Source: OECD via FRED, monthly historical observations, NOT live quotes. STALE means older than 75 days. Cross-country spreads can compare different months.")
     with st.expander("Source series and observation dates"):
         st.dataframe(pd.DataFrame([
             {"Country": r["label"], "FRED series": r["series_id"], "Observation": str(r["date"]) if r["date"] else "N/A", "Status": "Stale" if r["stale"] else ("OK" if r["value"] is not None else "Unavailable"), "Error": r.get("error", "")}
