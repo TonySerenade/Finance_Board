@@ -2,6 +2,7 @@
 from datetime import date
 import pandas as pd
 import streamlit as st
+import plotly.graph_objects as go
 from core.pricing import Bond, analyze_bond
 
 st.set_page_config(page_title="FI | Risk Terminal", page_icon="▦", layout="wide", initial_sidebar_state="expanded")
@@ -126,7 +127,23 @@ with left:
     st.dataframe(shocks.style.format("{:+,.4f}"), use_container_width=True, height=410)
 with right:
     st.metric(f"SELECTED SCENARIO  /  {shock_bp:+} bp", f"{analytics['shock_pnl'](shock_bp):+,.2f}")
-    st.bar_chart(shocks[["Exact P&L"]], height=305)
+    # Color-code profits and losses, just like a trading risk monitor.
+    chart = go.Figure(go.Bar(
+        x=shocks.index.tolist(),
+        y=shocks["Exact P&L"].tolist(),
+        marker_color=["#00D7A0" if pnl >= 0 else "#FF705D" for pnl in shocks["Exact P&L"]],
+        hovertemplate="Yield shock: %{x:+} bp | P&L: %{y:+,.4f}<extra></extra>",
+    ))
+    chart.update_layout(
+        template="plotly_dark", height=305,
+        paper_bgcolor="#080C10", plot_bgcolor="#080C10",
+        font=dict(color="#C8D3DF", family="Consolas, monospace"),
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(title="Shock (bp)", gridcolor="#25313B"),
+        yaxis=dict(title="P&L", gridcolor="#25313B"),
+        showlegend=False,
+    )
+    st.plotly_chart(chart, use_container_width=True)
 st.caption("All P&L and DV01 figures are in the entered face-value currency. Parallel YTM shifts only; no spread, FX, liquidity or carry effects.")
 st.divider()
 
