@@ -139,17 +139,9 @@ for col, label, value in zip(
 st.divider()
 
 st.markdown("### :orange[04 /] RATE SHOCK MONITOR")
-# Keep scenario inputs directly above the stress-test results.
-with st.container(border=True):
-    st.markdown(":orange[SCENARIO CONTROLS]  |  :blue[PARALLEL YIELD SHIFT]")
-    shock_control, shock_readout = st.columns([4, 1], vertical_alignment="center")
-    with shock_control:
-        shock_bp = st.slider("Yield shock (basis points)", -200, 200, 50, 5)
-    with shock_readout:
-        st.metric("APPLIED SHOCK", f"{shock_bp:+} bp")
-    st.caption("Negative shock = falling yields; positive shock = rising yields.")
+st.caption("FIXED STRESS GRID / ±10, ±20, ±30, ±50, ±100 BP")
 left, right = st.columns([1.25, 1], gap="medium")
-shock_levels = list(range(-200, 201, 25))  # Stable scenarios regardless of slider position.
+shock_levels = [-100, -50, -30, -20, -10, 10, 20, 30, 50, 100]
 rows = []
 for bp in shock_levels:
     dy = bp / 10000
@@ -170,21 +162,20 @@ with left:
         },
     )
 with right:
-    st.metric(f"SELECTED SCENARIO  /  {shock_bp:+} bp", f"{analytics['shock_pnl'](shock_bp):+,.2f}")
     # Color-code profits and losses, just like a trading risk monitor.
     chart = go.Figure(go.Bar(
-        x=[str(bp) for bp in shocks.index],
+        x=[f"{bp:+}" for bp in shocks.index],
         y=shocks["Exact P&L"].tolist(),
         marker_color=["#00D7A0" if pnl >= 0 else "#FF705D" for pnl in shocks["Exact P&L"]],
         width=0.72,
-        hovertemplate="Yield shock: %{x:+} bp | P&L: %{y:+,.4f}<extra></extra>",
+        hovertemplate="Yield shock: %{x} bp | P&L: %{y:+,.4f}<extra></extra>",
     ))
     chart.update_layout(
         template="plotly_dark", height=305,
         paper_bgcolor="#080C10", plot_bgcolor="#080C10",
         font=dict(color="#C8D3DF", family="Consolas, monospace"),
         margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(title="Shock (bp)", type="category", categoryorder="array", categoryarray=[str(bp) for bp in shock_levels], gridcolor="#25313B"),
+        xaxis=dict(title="Shock (bp)", type="category", categoryorder="array", categoryarray=[f"{bp:+}" for bp in shock_levels], gridcolor="#25313B"),
         yaxis=dict(title="P&L", gridcolor="#25313B"),
         showlegend=False,
     )
