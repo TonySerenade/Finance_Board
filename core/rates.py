@@ -71,9 +71,9 @@ def fetch_sovereign_yields(as_of=None, max_age_days=75):
             observation["stale"] = (today - observation["date"]).days > max_age_days
             if not observation["stale"]:
                 observation["value"] = float(latest[series_id])
-        except (requests.RequestException, ValueError, KeyError, IndexError, pd.errors.ParserError):
-            # One failed country should not take down the whole dashboard.
-            pass
+        except (requests.RequestException, ValueError, KeyError, IndexError, pd.errors.ParserError) as exc:
+            # Surface a concise diagnostic instead of silently returning N/A.
+            observation["error"] = f"{type(exc).__name__}: {str(exc)[:160]}"
 
         return observation
 
