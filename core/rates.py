@@ -29,8 +29,8 @@ FRED_CSV_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv"
 def fetch_sovereign_yields(as_of=None, max_age_days=75):
     """Download the latest usable observation for each country.
 
-    Returns one dictionary per series. A stale or failed series has value=None
-    rather than silently displaying an old number as today's market yield.
+    Returns one dictionary per series. Historical observations retain their
+    value and date, with stale=True, rather than masquerading as live quotes.
     """
     today = as_of or date.today()
     results = []
@@ -69,8 +69,7 @@ def fetch_sovereign_yields(as_of=None, max_age_days=75):
             latest = frame.iloc[-1]
             observation["date"] = latest[date_column].date()
             observation["stale"] = (today - observation["date"]).days > max_age_days
-            if not observation["stale"]:
-                observation["value"] = float(latest[series_id])
+            observation["value"] = float(latest[series_id])
         except (requests.RequestException, ValueError, KeyError, IndexError, pd.errors.ParserError) as exc:
             # Surface a concise diagnostic instead of silently returning N/A.
             observation["error"] = f"{type(exc).__name__}: {str(exc)[:160]}"
